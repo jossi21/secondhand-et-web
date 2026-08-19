@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+:root {
+  --background: #faf6ee;
+  --foreground: #211c15;
+
+  --color-cream: #faf6ee;
+  --color-cream-dim: #f2ece0;
+  --color-ink: #211c15;
+  --color-ink-soft: #6b6153;
+
+  --color-terracotta: #d2601d;
+  --color-terracotta-dark: #b04f16;
+  --color-terracotta-tint: #fbeade;
+
+  --color-sage: #2f6b4f;
+  --color-sage-bg: #e1f0e6;
+
+  --color-border: #e6ddc9;
+
+  --font-display: var(--font-fraunces);
+  --font-mono-data: var(--font-ibm-plex-mono);
+  --font-sans: var(--font-inter);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-cream: var(--color-cream);
+  --color-cream-dim: var(--color-cream-dim);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-terracotta: var(--color-terracotta);
+  --color-terracotta-dark: var(--color-terracotta-dark);
+  --color-terracotta-tint: var(--color-terracotta-tint);
+  --color-sage: var(--color-sage);
+  --color-sage-bg: var(--color-sage-bg);
+  --color-border: var(--color-border);
+  --font-display: var(--font-display);
+  --font-mono-data: var(--font-mono-data);
+  --font-sans: var(--font-sans);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
