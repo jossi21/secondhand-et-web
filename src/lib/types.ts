@@ -57,9 +57,35 @@ export interface UserInfo {
   phone: string;
   city: string | null;
   isVerified: boolean;
+  role: UserRole;
 }
 
 export interface AuthResponse {
   accessToken: string;
   user: UserInfo;
+}
+
+export interface LoginCommand {
+  email: string;
+  password: string;
+  role: UserRole;
+}
+
+export interface RegisterCommand {
+  fullName: string;
+  email: string;
+  phone: string;
+  password: string;
+  city?: string;
+  role: "buyer" | "seller";
+}
+
+export interface ReportResponse {
+  id: string;
+  reason: string;
+  listingId: string;
+  listingTitle?: string;
+  reportedById: string;
+  reportedByName?: string;
+  createdAt: string;
 }
