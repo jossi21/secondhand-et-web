@@ -68,7 +68,7 @@ export interface AuthResponse {
 export interface LoginCommand {
   email: string;
   password: string;
-  role: UserRole;
+  role?: UserRole;
 }
 
 export interface RegisterCommand {
@@ -78,6 +78,28 @@ export interface RegisterCommand {
   password: string;
   city?: string;
   role: "buyer" | "seller";
+}
+
+export interface UserResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  city?: string;
+  isVerified: boolean;
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface RatingResponse {
+  id: string;
+  score: number;
+  comment?: string;
+  fromUserId: string;
+  fromUserName?: string;
+  toUserId: string;
+  toUserName?: string;
+  createdAt: string;
 }
 
 export interface ReportResponse {

@@ -62,11 +62,10 @@ export function Navbar() {
           >
             Post Item
           </Link>
-
           {loading ? (
             <div className="h-9 w-24 animate-pulse rounded-full bg-cream-dim" />
           ) : user ? (
-            <div className="relative ml-auto" ref={menuRef}>
+            <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen((v) => !v)}
                 className="flex items-center gap-2 rounded-full border border-border bg-cream-dim px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-cream"
@@ -116,7 +115,7 @@ export function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="rounded-full border border-ink/15 px-5 py-2 text-sm font-medium text-ink transition-colors hover:bg-cream-dim ml-auto"
+              className="rounded-full border border-ink/15 px-5 py-2 text-sm font-medium text-ink transition-colors hover:bg-cream-dim"
             >
               Sign In
             </Link>

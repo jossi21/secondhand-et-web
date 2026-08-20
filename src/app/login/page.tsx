@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { ApiError } from "@/lib/api";
@@ -117,87 +117,11 @@ function RoleToggle({
   );
 }
 
-function PasswordInput({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  placeholder: string;
-}) {
-  const [showPassword, setShowPassword] = useState(false);
-  // Use lazy initialization to check if we're on the client
-  const [mounted, setMounted] = useState(() => {
-    if (typeof window !== "undefined") {
-      // This will only run on the client
-      return true;
-    }
-    return false;
-  });
-
-  return (
-    <div className="relative">
-      <input
-        type={showPassword ? "text" : "password"}
-        required
-        minLength={8}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className={`${inputClass} pr-12`}
-      />
-      <button
-        type="button"
-        onClick={() => setShowPassword(!showPassword)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-soft hover:text-ink transition-colors"
-        aria-label={showPassword ? "Hide password" : "Show password"}
-      >
-        {showPassword ? (
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-            />
-          </svg>
-        ) : (
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-            />
-          </svg>
-        )}
-      </button>
-    </div>
-  );
-}
-
 function SignInForm({ onSwitch }: { onSwitch: () => void }) {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("buyer");
+  const [role, setRole] = useState<UserRole | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -206,18 +130,9 @@ function SignInForm({ onSwitch }: { onSwitch: () => void }) {
     setError(null);
     setSubmitting(true);
     try {
-      await login({ email, password, role });
+      await login({ email, password, ...(role ? { role } : {}) });
     } catch (err) {
-      // Selected role didn't match — try admin silently before surfacing an error.
-      // Covers the case where a seeded admin account logs in without a visible
-      // "Admin" option in the UI.
-      try {
-        await login({ email, password, role: "admin" });
-      } catch {
-        setError(
-          err instanceof ApiError ? err.message : "Something went wrong",
-        );
-      }
+      setError(err instanceof ApiError ? err.message : "Something went wrong");
     } finally {
       setSubmitting(false);
     }
@@ -232,30 +147,46 @@ function SignInForm({ onSwitch }: { onSwitch: () => void }) {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="jossi@example.com"
+          placeholder="abel@example.com"
           className={inputClass}
         />
       </div>
 
       <div>
         <FieldLabel>Password</FieldLabel>
-        <PasswordInput
+        <input
+          type="password"
+          required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Enter your password"
+          className={inputClass}
         />
       </div>
 
       <div>
-        <FieldLabel>Sign in as</FieldLabel>
-        <RoleToggle
-          value={role}
-          onChange={setRole}
-          options={[
-            { value: "buyer", label: "Buyer" },
-            { value: "seller", label: "Seller" },
-          ]}
-        />
+        <FieldLabel>Sign in as (optional)</FieldLabel>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { value: "buyer" as UserRole, label: "Buyer" },
+            { value: "seller" as UserRole, label: "Seller" },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() =>
+                setRole((current) => (current === opt.value ? null : opt.value))
+              }
+              className={`rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
+                role === opt.value
+                  ? "border-terracotta bg-terracotta-tint text-terracotta"
+                  : "border-border text-ink-soft hover:border-ink/20"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -338,7 +269,7 @@ function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
           required
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
-          placeholder="Jossi Az"
+          placeholder="Abel Tesfaye"
           className={inputClass}
         />
       </div>
@@ -369,10 +300,14 @@ function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
 
       <div>
         <FieldLabel>Password</FieldLabel>
-        <PasswordInput
+        <input
+          type="password"
+          required
+          minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="At least 8 characters"
+          className={inputClass}
         />
       </div>
 
