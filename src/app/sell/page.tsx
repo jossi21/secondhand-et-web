@@ -7,15 +7,11 @@ import {
   Eye,
   Star,
   Plus,
-  Search,
-  Heart,
   Shield,
-  ChevronDown,
   Smartphone,
   Headphones,
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 
 /* ─── Types ─── */
 interface Listing {
@@ -131,73 +127,6 @@ export default function SellerDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9F7F4] text-gray-800 font-sans">
-      {/* ─── Top Bar ─── */}
-      <div className="bg-white border-b border-gray-200 px-6 py-2 flex items-center justify-between text-xs text-gray-500">
-        <div className="flex items-center gap-2">
-          <span className="font-medium">Build from Documentation</span>
-          <ChevronDown className="w-3 h-3" />
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="hover:text-gray-700">
-            <Search className="w-4 h-4" />
-          </button>
-          <button className="bg-blue-600 text-white px-3 py-1 rounded-md font-medium hover:bg-blue-700 transition">
-            Share
-          </button>
-        </div>
-      </div>
-
-      {/* ─── Navbar ─── */}
-      <nav className="bg-white border-b border-gray-200 px-6 py-3">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-1.5">
-              <span className="text-lg font-bold text-gray-900 tracking-tight">
-                SecondHand
-              </span>
-              <span className="bg-orange-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                ET
-              </span>
-            </Link>
-            <div className="hidden md:flex items-center gap-5 text-sm font-medium text-gray-600">
-              <Link href="/" className="hover:text-gray-900 transition">
-                Home
-              </Link>
-              <Link href="/browse" className="hover:text-gray-900 transition">
-                Browse
-              </Link>
-              <Link href="/listings/new" className="text-orange-600 hover:text-orange-700 transition">
-                Sell
-              </Link>
-            </div>
-          </div>
-
-          {/* Right Actions */}
-          <div className="flex items-center gap-4">
-            <Link
-              href="/saved"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition flex items-center gap-1"
-            >
-              <Heart className="w-4 h-4" />
-              <span className="hidden sm:inline">My Saved</span>
-            </Link>
-            <Link
-              href="/signin"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition border border-gray-300 rounded-lg px-4 py-2"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/listings/new"
-              className="text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 transition rounded-lg px-4 py-2"
-            >
-              Post Item
-            </Link>
-          </div>
-        </div>
-      </nav>
-
       {/* ─── View Toggle ─── */}
       <div className="bg-[#F9F7F4] border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-6 py-3">

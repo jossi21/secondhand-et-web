@@ -167,48 +167,6 @@ function formatPrice(price: number): string {
 
 // ─── Components ────────────────────────────────────────────────────────────
 
-function Navbar() {
-  return (
-    <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
-      <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-10">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold tracking-tight text-gray-900">
-              SecondHand
-            </span>
-            <span className="bg-orange-700 text-white text-xs font-bold px-1.5 py-0.5 rounded">
-              ET
-            </span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-8">
-            <Link href="/" className="text-gray-500 hover:text-gray-900 font-medium transition-colors">
-              Home
-            </Link>
-            <Link href="/browse" className="text-orange-700 font-semibold">
-              Browse
-            </Link>
-            <Link href="/sell" className="text-gray-500 hover:text-gray-900 font-medium transition-colors">
-              Sell
-            </Link>
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <Link href="/saved" className="hidden sm:block text-gray-500 hover:text-gray-900 font-medium transition-colors">
-            My Saved
-          </Link>
-          <Link href="/signin" className="hidden sm:block px-5 py-2 border border-gray-300 rounded-lg text-gray-900 font-medium hover:bg-gray-50 transition-colors">
-            Sign In
-          </Link>
-          <Link href="/post" className="px-5 py-2 bg-orange-700 hover:bg-orange-800 text-white font-medium rounded-lg transition-colors shadow-sm">
-            Post Item
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}
-
 interface SidebarProps {
   activeCategory: string;
   onCategoryChange: (c: string) => void;
@@ -511,8 +469,6 @@ export default function BrowsePage() {
       </Head>
 
       <div className="min-h-screen bg-[#F5F5F0] text-gray-900 font-sans">
-        <Navbar />
-
         {/* Search Bar */}
         <div className="bg-white border-b border-gray-100">
           <div className="max-w-[1400px] mx-auto px-6 py-4">
