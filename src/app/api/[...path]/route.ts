@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "@/lib/auth/session";
+import { createBrowserRouter } from "react-router-dom";
+
+const router = createBrowserRouter([]);
 
 const BACKEND_URL = process.env.API_URL ?? "http://localhost:4000";
 

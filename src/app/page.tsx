@@ -4,6 +4,7 @@ import { serverApiFetch } from "@/lib/api-server";
 import { CategoryResponse, PaginatedListingResponse } from "@/lib/types";
 import { CategoryCard } from "@/components/categories/CategoryCard";
 import { ListingCard } from "@/components/listings/ListingCard";
+import BrowsePage from "./browse/page";
 
 const QUICK_SEARCHES = ["iPhone", "Laptop", "Toyota", "Sofa", "Refrigerator"];
 
@@ -105,7 +106,7 @@ export default async function Home() {
             {QUICK_SEARCHES.map((term) => (
               <Link
                 key={term}
-                href={`/browse?q=${encodeURIComponent(term)}`}
+                href={`/browse?q=${term}`}
                 className="rounded-full border border-white/20 px-4 py-1.5 text-sm text-white/80 transition-colors hover:border-terracotta hover:text-white"
               >
                 {term}
