@@ -33,7 +33,7 @@ export function Navbar() {
 
         <div className="flex items-center gap-5">
           <Link
-            href="/saved"
+            href="/buyer"
             className="hidden text-sm font-medium text-terracotta sm:inline"
           >
             My Saved
