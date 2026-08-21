@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { UserInfo } from "@/lib/types";
 
-function dashboardPathForRole(role: string): string {
+function dashboardPathForRole(role: UserInfo["role"]): string {
   if (role === "admin") return "/admin";
-  if (role === "seller") return "/dashboard/seller";
-  return "/dashboard/buyer";
+  if (role === "seller") return "/seller";
+  return "/buyer";
 }
 
 export function Navbar() {
@@ -38,20 +39,11 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          <Link href="/" className="text-sm font-medium text-terracotta">
-            Home
-          </Link>
           <Link
             href="/browse"
             className="text-sm font-medium text-ink-soft transition-colors hover:text-ink"
           >
             Browse
-          </Link>
-          <Link
-            href="/sell"
-            className="text-sm font-medium text-ink-soft transition-colors hover:text-ink"
-          >
-            Sell
           </Link>
         </nav>
 

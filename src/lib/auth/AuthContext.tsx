@@ -23,8 +23,8 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 function dashboardPathForRole(role: UserInfo["role"]): string {
   if (role === "admin") return "/admin";
-  if (role === "seller") return "/dashboard/seller";
-  return "/dashboard/buyer";
+  if (role === "seller") return "/seller";
+  return "/buyer";
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

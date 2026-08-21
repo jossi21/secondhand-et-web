@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ListingResponse } from "@/lib/types";
 import { resolveImageUrl } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/media";
 
 const CONDITION_LABEL: Record<string, string> = {
   brand_new: "Brand New",
@@ -26,7 +27,9 @@ function timeAgo(dateString: string): string {
 }
 
 export function ListingCard({ listing }: { listing: ListingResponse }) {
-  const coverImage = listing.images[0]?.url;
+  const coverImage = listing.images[0]?.url
+    ? resolveMediaUrl(listing.images[0].url)
+    : undefined;
 
   return (
     <Link

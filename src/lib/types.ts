@@ -8,6 +8,7 @@ export interface CategoryResponse {
   slug: string;
   description: string | null;
   parentId: string | null;
+  icon: string | null;
   isActive: boolean;
   children?: CategoryResponse[];
   createdAt: string;
@@ -26,22 +27,22 @@ export interface ListingSellerInfo {
   averageRating: number;
 }
 
-export interface ListingResponse {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  condition: Condition;
-  status: ListingStatus;
-  city: string;
-  neighborhood: string | null;
-  viewCount: number;
-  sellerId: string;
-  categoryId: string;
-  images: ListingImageResponse[];
-  seller?: ListingSellerInfo;
-  createdAt: string;
-}
+// export interface ListingResponse {
+//   id: string;
+//   title: string;
+//   description: string;
+//   price: number;
+//   condition: Condition;
+//   status: ListingStatus;
+//   city: string;
+//   neighborhood: string | null;
+//   viewCount: number;
+//   sellerId: string;
+//   categoryId: string;
+//   images: ListingImageResponse[];
+//   seller?: ListingSellerInfo;
+//   createdAt: string;
+// }
 
 export interface PaginatedListingResponse {
   data: ListingResponse[];
@@ -142,4 +143,41 @@ export interface ReportResponse {
   reportedById: string;
   reportedByName?: string;
   createdAt: string;
+}
+
+export interface ListingImageResponse {
+  id: string;
+  url: string;
+  sortOrder: number;
+}
+
+export interface ListingSellerInfo {
+  id: string;
+  fullName: string;
+  isVerified: boolean;
+  averageRating: number;
+}
+
+export interface ListingResponse {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  condition: "brand_new" | "lightly_used" | "fair_condition";
+  status: "active" | "sold" | "removed";
+  city: string;
+  neighborhood?: string;
+  viewCount: number;
+  sellerId: string;
+  categoryId: string;
+  images: ListingImageResponse[];
+  seller?: ListingSellerInfo;
+  createdAt: string;
+}
+
+export interface PaginatedListingResponse {
+  data: ListingResponse[];
+  total: number;
+  page: number;
+  limit: number;
 }
