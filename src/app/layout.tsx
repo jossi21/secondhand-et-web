@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/lib/auth/AuthContext";
+import { ToastProvider } from "@/components/ui/Toast";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -40,11 +41,13 @@ export default function RootLayout({
       className={`${fraunces.variable} ${ibmPlexMono.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-cream text-ink">
-        <AuthProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

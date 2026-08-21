@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "@/lib/auth/session";
-import { createBrowserRouter } from "react-router-dom";
 
-const router = createBrowserRouter([]);
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 const BACKEND_URL = process.env.API_URL ?? "http://localhost:4000";
 
@@ -23,6 +23,7 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     method: req.method,
     headers,
     body: hasBody ? await req.arrayBuffer() : undefined,
+    cache: "no-store",
     // @ts-expect-error - duplex required by undici for streaming bodies
     duplex: hasBody ? "half" : undefined,
   });
@@ -33,6 +34,7 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   if (responseContentType) {
     responseHeaders.set("content-type", responseContentType);
   }
+  responseHeaders.set("cache-control", "no-store");
 
   return new NextResponse(responseBody, {
     status: response.status,

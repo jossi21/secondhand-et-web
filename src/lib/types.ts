@@ -80,6 +80,13 @@ export interface RegisterCommand {
   role: "buyer" | "seller";
 }
 
+export interface UpdateUserCommand {
+  fullName?: string;
+  phone?: string;
+  city?: string;
+  isVerified?: boolean;
+}
+
 export interface UserResponse {
   id: string;
   fullName: string;
@@ -99,6 +106,31 @@ export interface RatingResponse {
   fromUserName?: string;
   toUserId: string;
   toUserName?: string;
+  createdAt: string;
+}
+
+export interface SellerDashboardResponse {
+  activeListings: number;
+  soldListings: number;
+  totalViews: number;
+  averageRating: number;
+  listings: ListingResponse[];
+  recentRatings: RatingResponse[];
+  recentReports: ReportResponse[];
+}
+
+export interface BuyerDashboardResponse {
+  savedListingsCount: number;
+  ratingsGivenCount: number;
+  reportsFiledCount: number;
+  savedListings: SavedListingResponse[];
+  ratingsGiven: RatingResponse[];
+}
+
+export interface SavedListingResponse {
+  id: string;
+  listingId: string;
+  listing: ListingResponse;
   createdAt: string;
 }
 
