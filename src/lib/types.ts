@@ -2,6 +2,60 @@ export type Condition = "brand_new" | "lightly_used" | "fair_condition";
 export type ListingStatus = "active" | "sold" | "removed";
 export type UserRole = "buyer" | "seller" | "admin";
 
+export interface UserInfo {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  city: string | null;
+  isVerified: boolean;
+  role: UserRole;
+}
+
+export interface UserContact {
+  type: string;
+  value: string;
+}
+
+export interface AuthResponse {
+  accessToken: string;
+  user: UserInfo;
+}
+
+export interface LoginCommand {
+  email: string;
+  password: string;
+  role?: UserRole;
+}
+
+export interface RegisterCommand {
+  fullName: string;
+  email: string;
+  phone?: string;
+  contacts?: UserContact[];
+  password: string;
+  city?: string;
+  role: "buyer" | "seller";
+}
+
+export interface UpdateUserCommand {
+  fullName?: string;
+  phone?: string;
+  city?: string;
+  isVerified?: boolean;
+}
+
+export interface UserResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  city?: string;
+  isVerified: boolean;
+  role: UserRole;
+  createdAt: string;
+}
+
 export interface CategoryResponse {
   id: string;
   name: string;
@@ -25,78 +79,14 @@ export interface ListingSellerInfo {
   fullName: string;
   isVerified: boolean;
   averageRating: number;
+  contacts?: SellerContact[];
 }
-
-// export interface ListingResponse {
-//   id: string;
-//   title: string;
-//   description: string;
-//   price: number;
-//   condition: Condition;
-//   status: ListingStatus;
-//   city: string;
-//   neighborhood: string | null;
-//   viewCount: number;
-//   sellerId: string;
-//   categoryId: string;
-//   images: ListingImageResponse[];
-//   seller?: ListingSellerInfo;
-//   createdAt: string;
-// }
 
 export interface PaginatedListingResponse {
   data: ListingResponse[];
   total: number;
   page: number;
   limit: number;
-}
-
-export interface UserInfo {
-  id: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  city: string | null;
-  isVerified: boolean;
-  role: UserRole;
-}
-
-export interface AuthResponse {
-  accessToken: string;
-  user: UserInfo;
-}
-
-export interface LoginCommand {
-  email: string;
-  password: string;
-  role?: UserRole;
-}
-
-export interface RegisterCommand {
-  fullName: string;
-  email: string;
-  phone: string;
-  password: string;
-  city?: string;
-  role: "buyer" | "seller";
-}
-
-export interface UpdateUserCommand {
-  fullName?: string;
-  phone?: string;
-  city?: string;
-  isVerified?: boolean;
-}
-
-export interface UserResponse {
-  id: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  city?: string;
-  isVerified: boolean;
-  role: UserRole;
-  createdAt: string;
 }
 
 export interface RatingResponse {
@@ -151,13 +141,6 @@ export interface ListingImageResponse {
   sortOrder: number;
 }
 
-export interface ListingSellerInfo {
-  id: string;
-  fullName: string;
-  isVerified: boolean;
-  averageRating: number;
-}
-
 export interface ListingResponse {
   id: string;
   title: string;
@@ -180,4 +163,9 @@ export interface PaginatedListingResponse {
   total: number;
   page: number;
   limit: number;
+}
+
+export interface SellerContact {
+  type: string;
+  value: string;
 }

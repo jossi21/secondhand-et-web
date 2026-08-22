@@ -3,10 +3,13 @@ export interface UserFormErrors {
   email?: string;
   phone?: string;
   password?: string;
+  contacts?: string;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[+\d][\d\s()-]{6,}$/;
+
+const MAX_CONTACTS = 5;
 
 export function validateFullName(value: string): string | undefined {
   if (!value.trim()) return "Full name is required.";
@@ -32,26 +35,50 @@ export function validatePassword(value: string): string | undefined {
   return undefined;
 }
 
+export function validateContacts(
+  contacts: { type: string; value: string }[],
+): string | undefined {
+  if (!contacts || contacts.length === 0) {
+    return "Select at least one contact method.";
+  }
+  if (contacts.length > MAX_CONTACTS) {
+    return `You can add at most ${MAX_CONTACTS} contacts.`;
+  }
+  return undefined;
+}
+
 export interface CreateUserFormValues {
   fullName: string;
   email: string;
   phone: string;
   password: string;
   city: string;
+  role: "buyer" | "seller";
+  contacts: { type: string; value: string }[];
 }
 
 export function validateCreateUserForm(
   values: CreateUserFormValues,
 ): UserFormErrors {
   const errors: UserFormErrors = {};
+
   const fullName = validateFullName(values.fullName);
   if (fullName) errors.fullName = fullName;
+
   const email = validateEmail(values.email);
   if (email) errors.email = email;
-  const phone = validatePhone(values.phone);
-  if (phone) errors.phone = phone;
+
   const password = validatePassword(values.password);
   if (password) errors.password = password;
+
+  if (values.role === "buyer") {
+    const phone = validatePhone(values.phone);
+    if (phone) errors.phone = phone;
+  } else {
+    const contacts = validateContacts(values.contacts);
+    if (contacts) errors.contacts = contacts;
+  }
+
   return errors;
 }
 

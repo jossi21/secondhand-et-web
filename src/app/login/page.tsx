@@ -4,7 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { ApiError } from "@/lib/api";
-import { UserRole } from "@/lib/types";
+import { UserRole, UserContact } from "@/lib/types";
+import { ContactsEditor } from "@/components/users/ContactsEditor";
+import {
+  validateCreateUserForm,
+  type UserFormErrors,
+} from "@/lib/validation/userForm";
 
 const CITIES = [
   "Addis Ababa",
@@ -23,70 +28,76 @@ export default function AuthPage() {
   const [tab, setTab] = useState<Tab>("signin");
 
   return (
-    <div className="mx-auto max-w-xl px-6 py-16 lg:px-0">
-      <div className="mb-10 text-center">
-        <Link href="/" className="inline-flex items-center gap-2">
-          <span className="font-display text-3xl font-semibold text-terracotta">
-            SecondHand
-          </span>
-          <span className="rounded-md bg-terracotta px-2.5 py-1 font-mono-data text-base font-semibold text-white">
-            ET
-          </span>
-        </Link>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-white p-8">
-        <div className="mb-8 grid grid-cols-2 gap-1 rounded-full bg-cream-dim p-1">
-          <button
-            onClick={() => setTab("signin")}
-            className={`rounded-full py-2.5 text-sm font-semibold transition-colors ${
-              tab === "signin" ? "bg-white text-ink shadow-sm" : "text-ink-soft"
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            onClick={() => setTab("create")}
-            className={`rounded-full py-2.5 text-sm font-semibold transition-colors ${
-              tab === "create" ? "bg-white text-ink shadow-sm" : "text-ink-soft"
-            }`}
-          >
-            Create Account
-          </button>
+    <div className="min-h-screen flex items-center justify-center px-4 py-4 bg-cream-dim">
+      <div className="w-full max-w-xl">
+        <div className="mb-6 text-center">
+          <Link href="/" className="inline-flex items-center gap-2">
+            <span className="font-display text-2xl font-semibold text-terracotta">
+              SecondHand
+            </span>
+            <span className="rounded-md bg-terracotta px-2 py-0.5 font-mono-data text-sm font-semibold text-white">
+              ET
+            </span>
+          </Link>
         </div>
 
-        {tab === "signin" ? (
-          <SignInForm onSwitch={() => setTab("create")} />
-        ) : (
-          <CreateAccountForm onSwitch={() => setTab("signin")} />
-        )}
-      </div>
+        <div className="rounded-2xl border border-border bg-white p-5 md:p-6">
+          <div className="mb-5 grid grid-cols-2 gap-1 rounded-full bg-cream-dim p-1">
+            <button
+              onClick={() => setTab("signin")}
+              className={`rounded-full py-1.5 text-sm font-semibold transition-colors ${
+                tab === "signin"
+                  ? "bg-white text-ink shadow-sm"
+                  : "text-ink-soft"
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => setTab("create")}
+              className={`rounded-full py-1.5 text-sm font-semibold transition-colors ${
+                tab === "create"
+                  ? "bg-white text-ink shadow-sm"
+                  : "text-ink-soft"
+              }`}
+            >
+              Create Account
+            </button>
+          </div>
 
-      <p className="mt-6 text-center text-xs text-ink-soft">
-        By creating an account you agree to our{" "}
-        <Link href="/terms" className="text-terracotta underline">
-          Terms of Service
-        </Link>{" "}
-        and{" "}
-        <Link href="/privacy" className="text-terracotta underline">
-          Privacy Policy
-        </Link>
-        .
-      </p>
+          {tab === "signin" ? (
+            <SignInForm onSwitch={() => setTab("create")} />
+          ) : (
+            <CreateAccountForm onSwitch={() => setTab("signin")} />
+          )}
+        </div>
+
+        <p className="mt-4 text-center text-xs text-ink-soft">
+          By creating an account you agree to our{" "}
+          <Link href="/terms" className="text-terracotta underline">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="text-terracotta underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
+      </div>
     </div>
   );
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="mb-2 block font-mono-data text-xs font-medium uppercase tracking-wide text-ink-soft">
+    <label className="mb-1 block font-mono-data text-[10px] font-medium uppercase tracking-wide text-ink-soft">
       {children}
     </label>
   );
 }
 
 const inputClass =
-  "w-full rounded-xl border border-border bg-cream-dim px-4 py-3 text-ink outline-none placeholder:text-ink-soft/70 focus:border-terracotta";
+  "w-full rounded-lg border border-border bg-cream-dim px-3 py-1.5 text-sm text-ink outline-none placeholder:text-ink-soft/70 focus:border-terracotta transition-colors";
 
 function RoleToggle({
   value,
@@ -98,13 +109,13 @@ function RoleToggle({
   options: { value: UserRole; label: string }[];
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-2">
       {options.map((opt) => (
         <button
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
+          className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
             value === opt.value
               ? "border-terracotta bg-terracotta-tint text-terracotta"
               : "border-border text-ink-soft hover:border-ink/20"
@@ -139,7 +150,7 @@ function SignInForm({ onSwitch }: { onSwitch: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <div>
         <FieldLabel>Email Address</FieldLabel>
         <input
@@ -166,7 +177,7 @@ function SignInForm({ onSwitch }: { onSwitch: () => void }) {
 
       <div>
         <FieldLabel>Sign in as (optional)</FieldLabel>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           {[
             { value: "buyer" as UserRole, label: "Buyer" },
             { value: "seller" as UserRole, label: "Seller" },
@@ -177,7 +188,7 @@ function SignInForm({ onSwitch }: { onSwitch: () => void }) {
               onClick={() =>
                 setRole((current) => (current === opt.value ? null : opt.value))
               }
-              className={`rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
+              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
                 role === opt.value
                   ? "border-terracotta bg-terracotta-tint text-terracotta"
                   : "border-border text-ink-soft hover:border-ink/20"
@@ -189,12 +200,16 @@ function SignInForm({ onSwitch }: { onSwitch: () => void }) {
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
 
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-xl bg-terracotta py-3 font-semibold text-white transition-colors hover:bg-terracotta-dark disabled:opacity-60"
+        className="rounded-lg bg-terracotta py-2 font-semibold text-white transition-colors hover:bg-terracotta-dark disabled:opacity-60"
       >
         {submitting ? "Signing in…" : "Sign In"}
       </button>
@@ -218,9 +233,11 @@ function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [contacts, setContacts] = useState<UserContact[]>([]);
   const [password, setPassword] = useState("");
   const [city, setCity] = useState("");
-  const [role, setRole] = useState<"buyer" | "seller">("buyer");
+  const [role, setRole] = useState<"buyer" | "seller">("seller");
+  const [fieldErrors, setFieldErrors] = useState<UserFormErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -228,15 +245,29 @@ function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    const errors = validateCreateUserForm({
+      fullName,
+      email,
+      phone,
+      password,
+      city,
+      role,
+      contacts,
+    });
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setSubmitting(true);
     try {
       await register({
         fullName,
         email,
-        phone,
         password,
         city: city || undefined,
         role,
+        ...(role === "buyer" ? { phone } : {}),
+        ...(role === "seller" ? { contacts } : {}),
       });
       setSuccess(true);
     } catch (err) {
@@ -248,11 +279,29 @@ function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
 
   if (success) {
     return (
-      <div className="flex flex-col items-center gap-4 py-6 text-center">
-        <p className="text-ink">Account created! You can now sign in.</p>
+      <div className="flex flex-col items-center gap-3 py-4 text-center">
+        <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+          <svg
+            className="w-7 h-7 text-green-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+        </div>
+        <p className="text-lg font-semibold text-ink">Account Created!</p>
+        <p className="text-sm text-ink-soft">
+          You can now sign in to your account.
+        </p>
         <button
           onClick={onSwitch}
-          className="rounded-xl bg-terracotta px-6 py-2.5 font-semibold text-white hover:bg-terracotta-dark"
+          className="rounded-lg bg-terracotta px-6 py-2 font-semibold text-white hover:bg-terracotta-dark transition-colors"
         >
           Go to Sign In
         </button>
@@ -261,54 +310,60 @@ function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
+      <div>
+        <FieldLabel>I want to</FieldLabel>
+        <RoleToggle
+          value={role}
+          onChange={(r) => setRole(r as "seller" | "buyer")}
+          options={[
+            { value: "seller", label: "Sell items" },
+            { value: "buyer", label: "Buy items" },
+          ]}
+        />
+      </div>
+
       <div>
         <FieldLabel>Full Name</FieldLabel>
         <input
           type="text"
-          required
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           placeholder="Abel Tesfaye"
           className={inputClass}
         />
+        {fieldErrors.fullName && (
+          <p className="mt-0.5 text-xs text-red-600">{fieldErrors.fullName}</p>
+        )}
       </div>
 
       <div>
         <FieldLabel>Email Address</FieldLabel>
         <input
           type="email"
-          required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="abel@example.com"
           className={inputClass}
         />
-      </div>
-
-      <div>
-        <FieldLabel>Phone Number</FieldLabel>
-        <input
-          type="tel"
-          required
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="+251 9XX XXX XXX"
-          className={inputClass}
-        />
+        {fieldErrors.email && (
+          <p className="mt-0.5 text-xs text-red-600">{fieldErrors.email}</p>
+        )}
       </div>
 
       <div>
         <FieldLabel>Password</FieldLabel>
         <input
           type="password"
-          required
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="At least 8 characters"
           className={inputClass}
         />
+        {fieldErrors.password && (
+          <p className="mt-0.5 text-xs text-red-600">{fieldErrors.password}</p>
+        )}
       </div>
 
       <div>
@@ -327,24 +382,42 @@ function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
         </select>
       </div>
 
-      <div>
-        <FieldLabel>I want to</FieldLabel>
-        <RoleToggle
-          value={role}
-          onChange={(r) => setRole(r as "buyer" | "seller")}
-          options={[
-            { value: "buyer", label: "Buy items" },
-            { value: "seller", label: "Sell items" },
-          ]}
-        />
-      </div>
+      {role === "buyer" ? (
+        <div>
+          <FieldLabel>Phone Number</FieldLabel>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+251 9XX XXX XXX"
+            className={inputClass}
+          />
+          {fieldErrors.phone && (
+            <p className="mt-0.5 text-xs text-red-600">{fieldErrors.phone}</p>
+          )}
+        </div>
+      ) : (
+        <div>
+          <FieldLabel>How Should Buyers Reach You?</FieldLabel>
+          <ContactsEditor onChange={setContacts} compact />
+          {fieldErrors.contacts && (
+            <p className="mt-0.5 text-xs text-red-600">
+              {fieldErrors.contacts}
+            </p>
+          )}
+        </div>
+      )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
 
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-xl bg-terracotta py-3 font-semibold text-white transition-colors hover:bg-terracotta-dark disabled:opacity-60"
+        className="rounded-lg bg-terracotta py-2 font-semibold text-white transition-colors hover:bg-terracotta-dark disabled:opacity-60"
       >
         {submitting ? "Creating account…" : "Create Account"}
       </button>

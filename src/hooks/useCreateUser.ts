@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
-import type { RegisterCommand } from "@/lib/types";
+import type { RegisterCommand, UserContact } from "@/lib/types";
 
 type Role = "buyer" | "seller";
 
@@ -10,6 +10,7 @@ export type CreateUserForm = {
   phone: string;
   password: string;
   city: string;
+  contacts: UserContact[];
 };
 
 type UseCreateUserResult = {
@@ -21,6 +22,8 @@ type UseCreateUserResult = {
 
 /**
  * Wraps POST /auth/register for admin-created buyer/seller accounts.
+ * Buyers send `phone`; sellers send `contacts` — never both, matching
+ * the backend's role-based validation.
  * Returns true on success, false on failure (error is set on the hook).
  */
 export function useCreateUser(): UseCreateUserResult {
@@ -34,10 +37,11 @@ export function useCreateUser(): UseCreateUserResult {
       const command: RegisterCommand = {
         fullName: form.fullName,
         email: form.email,
-        phone: form.phone,
         password: form.password,
         city: form.city || undefined,
         role,
+        ...(role === "buyer" ? { phone: form.phone } : {}),
+        ...(role === "seller" ? { contacts: form.contacts } : {}),
       };
       await apiFetch("/auth/register", {
         method: "POST",

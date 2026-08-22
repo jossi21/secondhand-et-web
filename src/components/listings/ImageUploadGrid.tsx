@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { uploadListingImage } from "@/lib/api/uploads";
 import { resolveMediaUrl } from "@/lib/media";
+
 const MAX_IMAGES = 8;
 
 interface ImageSlot {
@@ -22,6 +23,7 @@ export function ImageUploadGrid({
   const [slots, setSlots] = useState<ImageSlot[]>(() =>
     urls.map((url) => ({ id: url, url, uploading: false })),
   );
+  const inputRef = useRef<HTMLInputElement>(null);
 
   function syncUrls(next: ImageSlot[]) {
     setSlots(next);

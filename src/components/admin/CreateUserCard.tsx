@@ -5,6 +5,7 @@ import { useCreateUser, type CreateUserForm } from "@/hooks/useCreateUser";
 import { useToast } from "@/components/ui/Toast";
 import { FormModal } from "@/components/ui/FormModal";
 import { FormField } from "@/components/ui/FormField";
+import { ContactsEditor } from "@/components/users/ContactsEditor";
 import {
   validateCreateUserForm,
   type UserFormErrors,
@@ -19,6 +20,7 @@ const EMPTY: CreateUserForm = {
   phone: "",
   password: "",
   city: "",
+  contacts: [],
 };
 
 export function CreateUserCard({
@@ -43,7 +45,7 @@ export function CreateUserCard({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const errors = validateCreateUserForm(form);
+    const errors = validateCreateUserForm({ ...form, role });
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
@@ -106,20 +108,6 @@ export function CreateUserCard({
             </FormField>
 
             <FormField
-              id="create-phone"
-              label="Phone"
-              error={fieldErrors.phone}
-            >
-              <input
-                id="create-phone"
-                placeholder="Phone"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className={inputClass}
-              />
-            </FormField>
-
-            <FormField
               id="create-password"
               label="Password"
               error={fieldErrors.password}
@@ -143,6 +131,32 @@ export function CreateUserCard({
                 className={inputClass}
               />
             </FormField>
+
+            {role === "buyer" ? (
+              <FormField
+                id="create-phone"
+                label="Phone"
+                error={fieldErrors.phone}
+              >
+                <input
+                  id="create-phone"
+                  placeholder="Phone"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  className={inputClass}
+                />
+              </FormField>
+            ) : (
+              <FormField
+                id="create-contacts"
+                label="Contact methods"
+                error={fieldErrors.contacts}
+              >
+                <ContactsEditor
+                  onChange={(contacts) => setForm({ ...form, contacts })}
+                />
+              </FormField>
+            )}
 
             {error && <p className="text-sm text-red-600">{error}</p>}
 
