@@ -43,16 +43,18 @@ export interface UpdateUserCommand {
   phone?: string;
   city?: string;
   isVerified?: boolean;
+  contacts?: UserContact[];
 }
 
 export interface UserResponse {
   id: string;
   fullName: string;
   email: string;
-  phone: string;
+  phone?: string;
   city?: string;
   isVerified: boolean;
   role: UserRole;
+  contacts?: UserContact[];
   createdAt: string;
 }
 
@@ -168,4 +170,8 @@ export interface PaginatedListingResponse {
 export interface SellerContact {
   type: string;
   value: string;
+}
+
+export interface ToggleSavedListingResponse {
+  saved: boolean;
 }

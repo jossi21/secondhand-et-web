@@ -47,13 +47,23 @@ function valueLabelFor(type: string): string {
 }
 
 export function ContactsEditor({
+  initialContacts,
   onChange,
   compact = false,
 }: {
+  initialContacts?: { type: string; value: string }[];
   onChange: (contacts: { type: string; value: string }[]) => void;
   compact?: boolean;
 }) {
-  const [rows, setRows] = useState<ContactRow[]>([emptyRow()]);
+  const [rows, setRows] = useState<ContactRow[]>(() =>
+    initialContacts && initialContacts.length > 0
+      ? initialContacts.map((c) => ({
+          id: `${Date.now()}-${Math.random()}`,
+          type: c.type,
+          value: c.value,
+        }))
+      : [emptyRow()],
+  );
 
   useEffect(() => {
     const completed = rows.filter((r) => r.value.trim() !== "");

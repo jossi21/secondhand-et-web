@@ -86,15 +86,26 @@ export interface EditUserFormValues {
   fullName: string;
   phone: string;
   city: string;
+  role: "buyer" | "seller" | "admin";
+  contacts: { type: string; value: string }[];
 }
 
 export function validateEditUserForm(
   values: EditUserFormValues,
 ): UserFormErrors {
   const errors: UserFormErrors = {};
+
   const fullName = validateFullName(values.fullName);
   if (fullName) errors.fullName = fullName;
-  const phone = validatePhone(values.phone);
-  if (phone) errors.phone = phone;
+
+  if (values.role === "seller") {
+    const contacts = validateContacts(values.contacts);
+    if (contacts) errors.contacts = contacts;
+  } else if (values.role === "buyer") {
+    const phone = validatePhone(values.phone);
+    if (phone) errors.phone = phone;
+  }
+  // admin: no phone/contacts requirement either way
+
   return errors;
 }

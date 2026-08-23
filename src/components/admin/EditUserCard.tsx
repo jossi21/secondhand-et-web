@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { ApiError } from "@/lib/api";
-import { UpdateUserCommand, UserResponse } from "@/lib/types";
+import { UpdateUserCommand, UserContact, UserResponse } from "@/lib/types";
 import { FormModal } from "@/components/ui/FormModal";
 import { FormField } from "@/components/ui/FormField";
+import { ContactsEditor } from "@/components/users/ContactsEditor";
 import {
   validateEditUserForm,
   type UserFormErrors,
@@ -17,6 +18,7 @@ interface EditFormState {
   fullName: string;
   phone: string;
   city: string;
+  contacts: UserContact[];
 }
 
 function EditUserForm({
@@ -32,15 +34,25 @@ function EditUserForm({
 }) {
   const [form, setForm] = useState<EditFormState>({
     fullName: user.fullName,
-    phone: user.phone,
+    phone: user.phone ?? "",
     city: user.city ?? "",
+    contacts: user.contacts ?? [],
   });
   const [fieldErrors, setFieldErrors] = useState<UserFormErrors>({});
   const [error, setError] = useState<string | null>(null);
 
+  const isSeller = user.role === "seller";
+  const isBuyer = user.role === "buyer";
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const errors = validateEditUserForm(form);
+    const errors = validateEditUserForm({
+      fullName: form.fullName,
+      phone: form.phone,
+      city: form.city,
+      role: user.role,
+      contacts: form.contacts,
+    });
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
@@ -48,8 +60,9 @@ function EditUserForm({
     try {
       await onSave(user.id, {
         fullName: form.fullName,
-        phone: form.phone,
         city: form.city || undefined,
+        ...(isBuyer ? { phone: form.phone } : {}),
+        ...(isSeller ? { contacts: form.contacts } : {}),
       });
       onClose();
     } catch (err) {
@@ -78,15 +91,30 @@ function EditUserForm({
           />
         </FormField>
 
-        <FormField id="edit-phone" label="Phone" error={fieldErrors.phone}>
-          <input
-            id="edit-phone"
-            placeholder="Phone"
-            value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            className={inputClass}
-          />
-        </FormField>
+        {isBuyer && (
+          <FormField id="edit-phone" label="Phone" error={fieldErrors.phone}>
+            <input
+              id="edit-phone"
+              placeholder="Phone"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              className={inputClass}
+            />
+          </FormField>
+        )}
+
+        {isSeller && (
+          <FormField
+            id="edit-contacts"
+            label="Contact methods"
+            error={fieldErrors.contacts}
+          >
+            <ContactsEditor
+              initialContacts={form.contacts}
+              onChange={(contacts) => setForm({ ...form, contacts })}
+            />
+          </FormField>
+        )}
 
         <FormField id="edit-city" label="City (optional)">
           <input
