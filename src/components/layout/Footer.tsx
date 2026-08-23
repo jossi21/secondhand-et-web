@@ -34,7 +34,7 @@ export function Footer() {
               Browse
             </Link>
             <Link
-              href="/sell"
+              href="/seller"
               className="text-sm font-medium text-ink-soft transition-colors hover:text-ink"
             >
               Sell

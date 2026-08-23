@@ -36,7 +36,7 @@ export function ListingCard({ listing }: { listing: ListingResponse }) {
       href={`/listings/${listing.id}`}
       className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-white transition-shadow hover:shadow-lg"
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-cream-dim">
+      <div className="relative aspect-4/3 w-full overflow-hidden bg-cream-dim">
         {coverImage ? (
           <Image
             src={resolveImageUrl(coverImage)}
