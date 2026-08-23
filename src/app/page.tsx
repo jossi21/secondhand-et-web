@@ -3,8 +3,7 @@ import Image from "next/image";
 import { serverApiFetch } from "@/lib/api-server";
 import { CategoryResponse, PaginatedListingResponse } from "@/lib/types";
 import { CategoryCard } from "@/components/categories/CategoryCard";
-import { ListingCard } from "@/components/listings/ListingCard";
-import BrowsePage from "./browse/page";
+import { ListingCard } from "@/components/browse/ListingCard";
 
 const QUICK_SEARCHES = ["iPhone", "Laptop", "Toyota", "Sofa", "Refrigerator"];
 
@@ -42,9 +41,9 @@ async function getCategories(): Promise<CategoryResponse[]> {
 
 async function getRecentListings(): Promise<PaginatedListingResponse> {
   try {
-    return await serverApiFetch<PaginatedListingResponse>("/listings?limit=6");
+    return await serverApiFetch<PaginatedListingResponse>("/listings?limit=8");
   } catch {
-    return { data: [], total: 0, page: 1, limit: 6 };
+    return { data: [], total: 0, page: 1, limit: 8 };
   }
 }
 
@@ -65,7 +64,7 @@ export default async function Home() {
           priority
           className="object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/30" />
+        <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/60 to-black/30" />
         <div className="relative mx-auto max-w-7xl px-6 py-24 lg:px-10 lg:py-32">
           <span className="inline-flex items-center gap-2 rounded-full border border-terracotta/50 bg-terracotta/10 px-4 py-1.5 font-mono-data text-xs text-terracotta">
             <span className="h-1.5 w-1.5 rounded-full bg-terracotta" />
@@ -162,7 +161,7 @@ export default async function Home() {
         )}
       </section>
 
-      {/* Recent Listings */}
+      {/* Recent Listings - 4 cards per row */}
       <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
         <div className="mb-8 flex items-end justify-between">
           <h2 className="font-display text-3xl font-semibold text-ink">
@@ -185,7 +184,7 @@ export default async function Home() {
             .
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {listingsPage.data.map((listing) => (
               <ListingCard key={listing.id} listing={listing} />
             ))}

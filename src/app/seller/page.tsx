@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MoreVertical } from "lucide-react";
@@ -67,7 +67,7 @@ function SellerDashboardContent() {
   const { categories } = useCategories();
   const toast = useToast();
 
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const dashboard =
         await apiFetch<SellerDashboardResponse>("/dashboard/seller");
@@ -77,12 +77,12 @@ function SellerDashboardContent() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [load]);
 
   const categoryName = useMemo(() => {
     const map = new Map(categories.map((c) => [c.id, c.name]));

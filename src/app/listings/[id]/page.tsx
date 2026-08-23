@@ -10,6 +10,8 @@ import { conditionLabel } from "@/lib/conditionLabels";
 import { resolveMediaUrl } from "@/lib/media";
 import { useCategories } from "@/hooks/useCategories";
 import { SellerContactLink } from "@/components/listings/SellerContactLink";
+import { apiFetch, ApiError } from "@/lib/api";
+import { toggleSavedListing } from "@/lib/api/savedListings";
 
 function formatPrice(price: number): string {
   return price.toLocaleString("en-US");
@@ -24,6 +26,10 @@ function timeAgo(dateString: string): string {
   return `${diffDays} days ago`;
 }
 
+interface SavedListingLite {
+  listingId: string;
+}
+
 export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -32,6 +38,7 @@ export default function ListingDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
   const [similar, setSimilar] = useState<ListingResponse[]>([]);
 
   useEffect(() => {
@@ -45,6 +52,24 @@ export default function ListingDetailPage() {
         if (!cancelled) setListing(null);
       } finally {
         if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  // Check whether this listing is already in the user's saved list
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const mine = await apiFetch<SavedListingLite[]>("/saved-listings");
+        if (!cancelled) {
+          setSaved(mine.some((s) => s.listingId === id));
+        }
+      } catch {
+        // not logged in, or request failed — leave as unsaved, no error shown
       }
     })();
     return () => {
@@ -72,6 +97,22 @@ export default function ListingDetailPage() {
       cancelled = true;
     };
   }, [listing]);
+
+  async function toggleSave() {
+    if (saveBusy) return;
+    setSaveBusy(true);
+
+    try {
+      const result = await toggleSavedListing(id);
+      setSaved(result.saved);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        router.push("/login");
+      }
+    } finally {
+      setSaveBusy(false);
+    }
+  }
 
   const categoryName =
     categories.find((c) => c.id === listing?.categoryId)?.name ??
@@ -126,7 +167,7 @@ export default function ListingDetailPage() {
 
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
           <div>
-            <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-white">
+            <div className="aspect-4/3 overflow-hidden rounded-2xl bg-white">
               {images ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -215,11 +256,15 @@ export default function ListingDetailPage() {
 
             <div className="mt-4 flex gap-3">
               <button
-                onClick={() => setSaved((s) => !s)}
-                className="flex flex-1 items-center justify-center gap-2 rounded-full border border-border bg-white py-3 text-sm font-medium text-ink-soft hover:bg-cream-dim"
+                onClick={toggleSave}
+                disabled={saveBusy}
+                className="flex flex-1 items-center justify-center gap-2 rounded-full border border-border bg-white py-3 text-sm font-medium text-ink-soft hover:bg-cream-dim disabled:opacity-60"
               >
-                <Heart size={16} className={saved ? "text-terracotta" : ""} />
-                {saved ? "Saved" : "Save Listing"}
+                <Heart
+                  size={16}
+                  className={saved ? "fill-terracotta text-terracotta" : ""}
+                />
+                {saveBusy ? "Saving…" : saved ? "Saved" : "Save Listing"}
               </button>
               <button className="flex items-center justify-center gap-2 rounded-full border border-border bg-white px-6 py-3 text-sm font-medium text-ink-soft hover:bg-cream-dim">
                 <Flag size={16} /> Report

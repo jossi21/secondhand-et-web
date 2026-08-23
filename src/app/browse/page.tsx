@@ -92,7 +92,7 @@ export default function BrowsePage() {
     <div className="min-h-screen bg-[#F5F5F0] font-sans text-gray-900">
       {/* Header */}
       <div className="border-b border-gray-100 bg-white sticky top-0 z-10 shadow-sm">
-        <div className="mx-auto max-w-[1400px] px-4 py-3">
+        <div className="mx-auto max-w-350 px-4 py-3">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
               <div className="flex-1 flex gap-2 max-w-3xl">
@@ -219,13 +219,13 @@ export default function BrowsePage() {
       </div>
 
       {/* Main content */}
-      <main className="mx-auto max-w-[1400px] px-4 py-6">
+      <main className="mx-auto max-w-350 px-6 py-6">
         <div className="flex gap-6 relative">
           {/* Sidebar - with left-to-right slide animation */}
           <div
             className={`
               fixed lg:relative inset-y-0 left-0 z-50
-              w-80 lg:w-72 shrink-0
+              w-80 lg:w-64 shrink-0
               transform transition-transform duration-300 ease-in-out
               ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
               lg:translate-x-0
@@ -326,13 +326,13 @@ export default function BrowsePage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                   {displayedListings.map((listing) => (
                     <ListingCard key={listing.id} listing={listing} />
                   ))}
                 </div>
                 {displayedListings.length < total && (
-                  <div className="mt-6 text-center">
+                  <div className="mt-8 text-center">
                     <button className="px-6 py-2 text-sm font-medium text-orange-700 hover:text-orange-800 transition-colors">
                       Load more
                     </button>

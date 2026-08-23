@@ -1,27 +1,58 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Heart, Star, Flag } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
-import { BuyerDashboardResponse } from "@/lib/types";
+import { resolveMediaUrl } from "@/lib/media";
+import { conditionLabel } from "@/lib/conditionLabels";
 import { RequireRole } from "@/components/auth/RequireRole";
-import { DeleteDialog } from "@/components/ui/DeleteDialog";
-import { useToast } from "@/components/ui/Toast";
+import { ListingResponse } from "@/lib/types";
+import { toggleSavedListing } from "@/lib/api/savedListings";
 
-type SavedListingItem = BuyerDashboardResponse["savedListings"][number];
+interface SavedListingResponse {
+  id: string;
+  listingId: string;
+  listing: ListingResponse;
+  createdAt: string;
+}
+
+interface RatingResponse {
+  id: string;
+  score: number;
+  comment?: string;
+  fromUserId: string;
+  fromUserName?: string;
+  toUserId: string;
+  toUserName?: string;
+  createdAt: string;
+}
+
+interface BuyerDashboardResponse {
+  savedListingsCount: number;
+  ratingsGivenCount: number;
+  reportsFiledCount: number;
+  savedListings: SavedListingResponse[];
+  ratingsGiven: RatingResponse[];
+}
+
+function formatPrice(price: number): string {
+  return price.toLocaleString("en-US");
+}
 
 function StatCard({
   icon,
   value,
   label,
 }: {
-  icon: string;
-  value: string | number;
+  icon: React.ReactNode;
+  value: number | string;
   label: string;
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-white p-5 shadow-sm">
-      <span className="text-lg">{icon}</span>
+      <span className="text-ink-soft">{icon}</span>
       <div>
         <div className="font-mono-data text-2xl font-semibold text-ink">
           {value}
@@ -41,25 +72,12 @@ function Stars({ score }: { score: number }) {
   );
 }
 
-function timeAgo(dateString: string): string {
-  const diffDays = Math.floor(
-    (Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60 * 24),
-  );
-  if (diffDays <= 0) return "Today";
-  if (diffDays === 1) return "1 day ago";
-  return `${diffDays} days ago`;
-}
-
 function BuyerDashboardContent() {
+  const router = useRouter();
   const [data, setData] = useState<BuyerDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busyListingId, setBusyListingId] = useState<string | null>(null);
-  const [unsaveTarget, setUnsaveTarget] = useState<SavedListingItem | null>(
-    null,
-  );
-  const toast = useToast();
 
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const dashboard =
         await apiFetch<BuyerDashboardResponse>("/dashboard/buyer");
@@ -69,29 +87,37 @@ function BuyerDashboardContent() {
     } finally {
       setLoading(false);
     }
-  }
-
-  useEffect(() => {
-    load();
   }, []);
 
-  async function handleConfirmUnsave() {
-    if (!unsaveTarget) return;
-    setBusyListingId(unsaveTarget.listingId);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
+
+  async function unsave(listingId: string) {
+    if (!data) return;
+    const previous = data;
+    setData({
+      ...data,
+      savedListingsCount: data.savedListingsCount - 1,
+      savedListings: data.savedListings.filter(
+        (s) => s.listingId !== listingId,
+      ),
+    });
+
     try {
-      await apiFetch(`/saved-listings/${unsaveTarget.listingId}`, {
-        method: "DELETE",
-      });
-      toast.success("Removed from saved listings");
-      setUnsaveTarget(null);
-      await load();
+      const result = await toggleSavedListing(listingId);
+      if (result.saved) {
+        // Toggle unexpectedly re-saved it (e.g. it had already been
+        // unsaved elsewhere and this call restored it) — reload to
+        // reconcile instead of trusting our optimistic removal.
+        load();
+      }
     } catch (err) {
-      toast.error(
-        "Couldn't remove listing",
-        err instanceof ApiError ? err.message : "Please try again.",
-      );
-    } finally {
-      setBusyListingId(null);
+      setData(previous);
+      if (err instanceof ApiError && err.status === 401) {
+        router.push("/login");
+      }
     }
   }
 
@@ -124,25 +150,25 @@ function BuyerDashboardContent() {
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
-          icon="♥"
+          icon={<Heart size={20} />}
           value={data.savedListingsCount}
           label="Saved Listings"
         />
         <StatCard
-          icon="⭐"
+          icon={<Star size={20} />}
           value={data.ratingsGivenCount}
           label="Ratings Given"
         />
         <StatCard
-          icon="🚩"
+          icon={<Flag size={20} />}
           value={data.reportsFiledCount}
           label="Reports Filed"
         />
       </div>
 
-      <div className="mb-6">
+      <div className="mb-8">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-lg font-semibold text-ink">
+          <h2 className="font-display text-xl font-semibold text-ink">
             Saved Listings
           </h2>
           <Link
@@ -154,112 +180,108 @@ function BuyerDashboardContent() {
         </div>
 
         {data.savedListings.length === 0 ? (
-          <div className="rounded-xl border border-border bg-white p-10 text-center text-ink-soft shadow-sm">
-            No saved listings yet.
+          <div className="rounded-xl border border-border bg-white px-6 py-10 text-center text-ink-soft">
+            You haven&apos;t saved any listings yet.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {data.savedListings.map((s) => (
-              <div
-                key={s.id}
-                className="overflow-hidden rounded-xl border border-border bg-white shadow-sm"
-              >
-                <div className="aspect-[4/3] w-full bg-cream-dim">
-                  {s.listing.images[0] && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={s.listing.images[0].url}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                </div>
-                <div className="p-4">
-                  <p className="mb-1 truncate font-medium text-ink">
-                    {s.listing.title}
-                  </p>
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="font-mono-data font-semibold text-terracotta">
-                      ETB {s.listing.price.toLocaleString()}
-                    </span>
-                    <span className="text-xs text-ink-soft">
-                      {s.listing.condition}
-                    </span>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {data.savedListings.map((saved) => {
+              const item = saved.listing;
+              const thumb = item.images[0];
+              return (
+                <div
+                  key={saved.id}
+                  className="overflow-hidden rounded-2xl border border-border bg-white"
+                >
+                  <Link href={`/listings/${item.id}`} className="block">
+                    <div className="relative aspect-square bg-cream-dim">
+                      {thumb && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={resolveMediaUrl(thumb.url)}
+                          alt={item.title}
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                    </div>
+                  </Link>
+                  <div className="p-4">
+                    <h3 className="line-clamp-1 font-medium text-ink">
+                      {item.title}
+                    </h3>
+                    <div className="mt-1 flex items-center justify-between">
+                      <span className="font-mono-data font-bold text-terracotta">
+                        ETB {formatPrice(item.price)}
+                      </span>
+                      <span className="text-xs text-ink-soft">
+                        {conditionLabel(item.condition)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-ink-soft">{item.city}</p>
+
+                    <div className="mt-3 flex gap-2">
+                      <Link
+                        href={`/listings/${item.id}`}
+                        className="flex-1 rounded-full border border-border py-1.5 text-center text-xs font-medium text-ink hover:bg-cream-dim"
+                      >
+                        View
+                      </Link>
+                      <button
+                        onClick={() => unsave(item.id)}
+                        className="flex-1 rounded-full border border-border py-1.5 text-xs font-medium text-ink-soft hover:bg-cream-dim"
+                      >
+                        Unsave
+                      </button>
+                    </div>
                   </div>
-                  <p className="mb-3 text-xs text-ink-soft">{s.listing.city}</p>
-                  <div className="flex gap-2">
-                    <Link
-                      href={`/listings/${s.listing.id}`}
-                      className="flex-1 rounded-lg border border-border py-2 text-center text-sm font-medium text-ink hover:bg-cream-dim"
-                    >
-                      View
-                    </Link>
-                    <button
-                      onClick={() => setUnsaveTarget(s)}
-                      disabled={busyListingId === s.listingId}
-                      aria-label="Remove from saved"
-                      className="flex items-center justify-center rounded-lg border border-border px-3 text-ink-soft hover:bg-cream-dim hover:text-ink disabled:opacity-60"
-                    >
-                      ✕
-                    </button>
-                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      <div className="rounded-xl border border-border bg-white shadow-sm">
-        <div className="border-b border-border px-5 py-4">
-          <h2 className="text-sm font-semibold text-ink">
-            Ratings I Have Given
-          </h2>
-        </div>
+      <div>
+        <h2 className="mb-4 font-display text-xl font-semibold text-ink">
+          Ratings I Have Given
+        </h2>
+
         {data.ratingsGiven.length === 0 ? (
-          <p className="px-5 py-10 text-center text-ink-soft">
-            You haven&apos;t rated anyone yet.
-          </p>
+          <div className="rounded-xl border border-border bg-white px-6 py-10 text-center text-ink-soft">
+            You haven&apos;t rated any sellers yet.
+          </div>
         ) : (
-          <div className="divide-y divide-border">
-            {data.ratingsGiven.map((r) => (
-              <div key={r.id} className="px-5 py-4">
-                <div className="mb-1 flex items-center justify-between">
-                  <span className="text-sm font-medium text-ink">
-                    {r.toUserName ?? "Seller"}
+          <div className="rounded-xl border border-border bg-white">
+            <div className="divide-y divide-border">
+              {data.ratingsGiven.map((r) => (
+                <div key={r.id} className="flex items-start gap-3 px-5 py-4">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-terracotta-tint font-display font-bold text-terracotta">
+                    {(r.toUserName ?? "?").charAt(0).toUpperCase()}
                   </span>
-                  <div className="flex items-center gap-1.5">
-                    <Stars score={r.score} />
-                    <span className="text-xs text-ink-soft">{r.score}/5</span>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-ink">
+                        {r.toUserName ?? "Seller"}
+                      </span>
+                      <Stars score={r.score} />
+                    </div>
+                    {r.comment && (
+                      <p className="mt-1 text-sm text-ink-soft">{r.comment}</p>
+                    )}
+                    <p className="mt-1 font-mono-data text-xs text-ink-soft/70">
+                      {new Date(r.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
                   </div>
                 </div>
-                {r.comment && (
-                  <p className="mb-1.5 text-sm text-ink-soft">{r.comment}</p>
-                )}
-                <p className="font-mono-data text-xs text-ink-soft/70">
-                  {timeAgo(r.createdAt)}
-                </p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
-
-      <DeleteDialog
-        open={!!unsaveTarget}
-        onClose={() => setUnsaveTarget(null)}
-        onConfirm={handleConfirmUnsave}
-        title="Remove from saved listings?"
-        itemName={unsaveTarget?.listing.title}
-        description={
-          unsaveTarget && (
-            <>
-              <span className="font-medium">{unsaveTarget.listing.title}</span>{" "}
-              will be removed from your saved listings.
-            </>
-          )
-        }
-      />
     </div>
   );
 }
