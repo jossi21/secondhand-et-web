@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { MoreVertical } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
+import { dismissReport } from "@/lib/api/reports";
 import { ReportResponse } from "@/lib/types";
+import { Dropdown, type DropdownItem } from "@/components/ui/Dropdown";
+import { DeleteDialog } from "@/components/ui/DeleteDialog";
+import { useToast } from "@/components/ui/Toast";
 
 function timeAgo(dateString: string): string {
   const diffDays = Math.floor(
@@ -13,23 +18,21 @@ function timeAgo(dateString: string): string {
   return `${diffDays} days ago`;
 }
 
+type PendingAction = {
+  type: "dismiss" | "remove";
+  report: ReportResponse;
+};
+
 export function ReportsTable() {
   const [reports, setReports] = useState<ReportResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actingOn, setActingOn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const isMountedRef = useRef(true);
+  const [pending, setPending] = useState<PendingAction | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const isFetchingRef = useRef(false);
+  const toast = useToast();
 
   const load = useCallback(async () => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
+    abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
@@ -39,67 +42,63 @@ export function ReportsTable() {
       const data = await apiFetch<ReportResponse[]>("/reports", {
         signal: controller.signal,
       });
-      if (isMountedRef.current) {
-        setReports(data);
-      }
-    } catch (error) {
-      if (isMountedRef.current) {
-        if (error instanceof Error && error.name === "AbortError") {
-          return;
-        }
-        setError(
-          error instanceof Error ? error.message : "Failed to load reports",
-        );
-        setReports([]);
-      }
+      setReports(data);
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      setError(err instanceof Error ? err.message : "Failed to load reports");
+      setReports([]);
     } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
-      isFetchingRef.current = false;
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    isMountedRef.current = true;
-
-    const fetchData = async () => {
-      await load();
-    };
-    fetchData();
-
-    return () => {
-      isMountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+    return () => abortControllerRef.current?.abort();
   }, [load]);
 
-  async function handleRemoveListing(report: ReportResponse) {
-    if (
-      !confirm(
-        `Remove listing "${report.listingTitle ?? report.listingId}" from the marketplace?`,
-      )
-    )
-      return;
+  async function confirmPendingAction() {
+    if (!pending) return;
+    const { type, report } = pending;
 
-    setActingOn(report.id);
-    setError(null);
     try {
-      await apiFetch(`/listings/${report.listingId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: "removed" }),
-      });
-      // Remove the report from the list after successful action
-      setReports((prev) => prev.filter((r) => r.id !== report.id));
+      if (type === "dismiss") {
+        await dismissReport(report.id);
+        toast.success("Report dismissed", "The listing stays live.");
+      } else {
+        await apiFetch(`/listings/${report.listingId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: "removed" }),
+        });
+        toast.success("Listing removed", "It's no longer visible to buyers.");
+      }
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Failed to remove listing",
+      toast.error(
+        type === "dismiss"
+          ? "Failed to dismiss report"
+          : "Failed to remove listing",
+        err instanceof ApiError ? err.message : undefined,
       );
     } finally {
-      setActingOn(null);
+      // Refresh from the server either way, so the table reflects
+      // reality even if the optimistic assumption above was wrong.
+      load();
     }
+  }
+
+  function menuItemsFor(report: ReportResponse): DropdownItem[] {
+    return [
+      {
+        label: "Dismiss",
+        onSelect: () => setPending({ type: "dismiss", report }),
+      },
+      {
+        label: "Remove Listing",
+        variant: "danger",
+        onSelect: () => setPending({ type: "remove", report }),
+      },
+    ];
   }
 
   if (loading) {
@@ -205,38 +204,20 @@ export function ReportsTable() {
                     {timeAgo(report.createdAt)}
                   </td>
                   <td className="px-6 py-3 text-right">
-                    <button
-                      onClick={() => handleRemoveListing(report)}
-                      disabled={actingOn === report.id}
-                      className="rounded-full bg-red-50 px-4 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {actingOn === report.id ? (
-                        <span className="flex items-center gap-1">
-                          <svg
-                            className="animate-spin h-3 w-3"
-                            viewBox="0 0 24 24"
+                    <div className="flex justify-end">
+                      <Dropdown
+                        align="right"
+                        trigger={
+                          <button
+                            className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                            aria-label="Open actions menu"
                           >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                              fill="none"
-                            />
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            />
-                          </svg>
-                          Removing…
-                        </span>
-                      ) : (
-                        "Remove Listing"
-                      )}
-                    </button>
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        }
+                        items={menuItemsFor(report)}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -244,6 +225,35 @@ export function ReportsTable() {
           </table>
         </div>
       )}
+
+      <DeleteDialog
+        open={pending !== null}
+        onClose={() => setPending(null)}
+        onConfirm={confirmPendingAction}
+        title={
+          pending?.type === "dismiss"
+            ? "Dismiss this report?"
+            : "Remove this listing?"
+        }
+        description={
+          pending?.type === "dismiss" ? (
+            <>
+              The report on{" "}
+              <span className="font-medium text-slate-700">
+                {pending.report.listingTitle ?? pending.report.listingId}
+              </span>{" "}
+              will be cleared. The listing stays live.
+            </>
+          ) : pending?.type === "remove" ? (
+            <>
+              <span className="font-medium text-slate-700">
+                {pending.report.listingTitle ?? pending.report.listingId}
+              </span>{" "}
+              will be taken off the marketplace. This can&apos;t be undone.
+            </>
+          ) : undefined
+        }
+      />
     </div>
   );
 }

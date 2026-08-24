@@ -12,6 +12,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { SellerContactLink } from "@/components/listings/SellerContactLink";
 import { apiFetch, ApiError } from "@/lib/api";
 import { toggleSavedListing } from "@/lib/api/savedListings";
+import { ReportListingModal } from "@/components/listings/ReportListingModal";
 
 function formatPrice(price: number): string {
   return price.toLocaleString("en-US");
@@ -40,6 +41,7 @@ export default function ListingDetailPage() {
   const [saved, setSaved] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
   const [similar, setSimilar] = useState<ListingResponse[]>([]);
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -266,7 +268,10 @@ export default function ListingDetailPage() {
                 />
                 {saveBusy ? "Saving…" : saved ? "Saved" : "Save Listing"}
               </button>
-              <button className="flex items-center justify-center gap-2 rounded-full border border-border bg-white px-6 py-3 text-sm font-medium text-ink-soft hover:bg-cream-dim">
+              <button
+                onClick={() => setReportOpen(true)}
+                className="flex items-center justify-center gap-2 rounded-full border border-border bg-white px-6 py-3 text-sm font-medium text-ink-soft hover:bg-cream-dim"
+              >
                 <Flag size={16} /> Report
               </button>
             </div>
@@ -368,6 +373,12 @@ export default function ListingDetailPage() {
           </div>
         )}
       </div>
+      {reportOpen && (
+        <ReportListingModal
+          listingId={listing.id}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
     </div>
   );
 }

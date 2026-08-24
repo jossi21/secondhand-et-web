@@ -54,7 +54,7 @@ const VARIANT_STYLES: Record<
   },
 };
 
-const AUTO_DISMISS_MS = 4000;
+const AUTO_DISMISS_MS = 5000;
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
