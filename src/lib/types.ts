@@ -175,3 +175,9 @@ export interface SellerContact {
 export interface ToggleSavedListingResponse {
   saved: boolean;
 }
+
+export interface SellerRatingSummary {
+  average: number;
+  count: number;
+  ratings: RatingResponse[];
+}

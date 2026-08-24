@@ -14,3 +14,7 @@ export async function createReport(
 export async function dismissReport(reportId: string): Promise<void> {
   return apiFetch(`/reports/${reportId}`, { method: "DELETE" });
 }
+
+export async function getReportById(reportId: string): Promise<ReportResponse> {
+  return apiFetch<ReportResponse>(`/reports/${reportId}`);
+}

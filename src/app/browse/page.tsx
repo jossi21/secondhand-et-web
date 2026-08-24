@@ -5,6 +5,13 @@ import { useCategories } from "@/hooks/useCategories";
 import { useListings } from "@/hooks/useListings";
 import { BrowseSidebar } from "@/components/browse/BrowseSidebar";
 import { ListingCard } from "@/components/browse/ListingCard";
+import {
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  SlidersHorizontal,
+} from "lucide-react";
 
 type SortOption = "Newest First" | "Price: Low to High" | "Price: High to Low";
 
@@ -66,7 +73,6 @@ export default function BrowsePage() {
     showSold,
   ].filter(Boolean).length;
 
-  // Helper to remove a specific filter
   const removeFilter = (type: string) => {
     switch (type) {
       case "category":
@@ -88,14 +94,30 @@ export default function BrowsePage() {
     }
   };
 
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
   return (
     <div className="min-h-screen bg-[#F5F5F0] font-sans text-gray-900">
       {/* Header */}
-      <div className="border-b border-gray-100 bg-white sticky top-0 z-10 shadow-sm">
-        <div className="mx-auto max-w-350 px-4 py-3">
+      <div className="border-b border-gray-100 bg-white sticky top-0 z-20 shadow-sm">
+        <div className="mx-auto max-w-[1400px] px-4 py-3">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <div className="flex-1 flex gap-2 max-w-3xl">
+              {/* Mobile Filter Button */}
+              <button
+                onClick={toggleSidebar}
+                className="lg:hidden relative flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-all hover:border-orange-300 shrink-0"
+                aria-label="Toggle filters"
+              >
+                <SlidersHorizontal className="w-5 h-5 text-gray-600" />
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+
+              <div className="flex-1 flex gap-2">
                 <input
                   type="text"
                   placeholder="Search listings..."
@@ -108,25 +130,13 @@ export default function BrowsePage() {
                 </button>
               </div>
 
-              {/* Filter Button - Right side of search bar */}
+              {/* Desktop Filter Button */}
               <button
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="relative flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-all hover:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                onClick={toggleSidebar}
+                className="hidden lg:flex relative items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-all hover:border-orange-300 shrink-0"
                 aria-label="Toggle filters"
               >
-                <svg
-                  className="w-5 h-5 text-gray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                  />
-                </svg>
+                <SlidersHorizontal className="w-5 h-5 text-gray-600" />
                 <span className="text-sm font-medium text-gray-700 hidden sm:inline">
                   Filters
                 </span>
@@ -138,7 +148,7 @@ export default function BrowsePage() {
               </button>
             </div>
 
-            {/* Active filters tags - displayed below search bar */}
+            {/* Active filters tags */}
             {hasActiveFilters && (
               <div className="flex flex-wrap items-center gap-1.5 mt-1">
                 <span className="text-xs text-gray-500 font-medium mr-1">
@@ -219,50 +229,83 @@ export default function BrowsePage() {
       </div>
 
       {/* Main content */}
-      <main className="mx-auto max-w-350 px-6 py-6">
+      <main className="ml-0 mr-4 max-w-[1400px] pr-4 pb-6">
         <div className="flex gap-6 relative">
-          {/* Sidebar - with left-to-right slide animation */}
+          {/* Sidebar - Desktop only */}
           <div
             className={`
-              fixed lg:relative inset-y-0 left-0 z-50
-              w-80 lg:w-64 shrink-0
-              transform transition-transform duration-300 ease-in-out
-              ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-              lg:translate-x-0
-              ${isSidebarOpen ? "lg:block" : "lg:hidden"}
+              hidden lg:block
+              ${isSidebarOpen ? "w-72" : "w-20"}
+              shrink-0
+              transition-all duration-300 ease-in-out
+              h-screen sticky top-0
             `}
           >
-            {/* Backdrop for mobile */}
-            {isSidebarOpen && (
-              <div
-                className="fixed inset-0 bg-black/30 z-40 lg:hidden"
-                onClick={() => setIsSidebarOpen(false)}
-              />
-            )}
-
             {/* Sidebar content */}
-            <div className="relative z-50 h-full overflow-y-auto shadow-xl lg:shadow-none lg:border lg:border-gray-100 lg:rounded-xl bg-white">
-              <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-100 bg-white">
-                <h3 className="font-semibold text-gray-900">Filters</h3>
-                <button
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
+            <div
+              className={`h-full overflow-hidden bg-white border-r border-gray-100 ${isSidebarOpen ? "w-72" : "w-20"}`}
+            >
+              {/* Desktop header */}
+              <div
+                className={`flex items-center ${isSidebarOpen ? "justify-between p-4" : "justify-center p-2"} border-b border-gray-100 bg-gray-50/50`}
+              >
+                {isSidebarOpen ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Filter className="w-4 h-4 text-gray-500" />
+                      <h3 className="font-semibold text-gray-900 text-sm">
+                        Filters
+                      </h3>
+                      {hasActiveFilters && (
+                        <span className="bg-orange-100 text-orange-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                          {activeFilterCount}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {hasActiveFilters && (
+                        <button
+                          onClick={() => {
+                            setActiveCategoryId("");
+                            setActiveCondition("");
+                            setActiveCity("");
+                            setMinPrice("");
+                            setMaxPrice("");
+                            setShowSold(false);
+                          }}
+                          className="text-xs text-gray-400 hover:text-gray-600 transition-colors px-2 py-1 rounded hover:bg-gray-100"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                      <button
+                        onClick={toggleSidebar}
+                        className="rounded-lg p-1 hover:bg-gray-100 transition-colors"
+                        aria-label="Collapse filters"
+                      >
+                        <ChevronLeft className="h-5 w-5 text-gray-500" />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={toggleSidebar}
+                      className="rounded-lg p-1 hover:bg-gray-100 transition-colors"
+                      aria-label="Expand filters"
+                      title="Expand filters"
+                    >
+                      <ChevronRight className="h-5 w-5 text-gray-500" />
+                    </button>
+                    {hasActiveFilters && (
+                      <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </>
+                )}
               </div>
+
               <BrowseSidebar
                 categories={categories}
                 activeCategoryId={activeCategoryId}
@@ -277,13 +320,64 @@ export default function BrowsePage() {
                 onMaxPriceChange={setMaxPrice}
                 showSold={showSold}
                 onToggleSold={setShowSold}
+                isCollapsed={!isSidebarOpen}
+              />
+            </div>
+          </div>
+
+          {/* Mobile Sidebar - Slide in */}
+          <div
+            className={`
+              fixed lg:hidden inset-y-0 left-0 z-50
+              w-80
+              transform transition-transform duration-300 ease-in-out
+              ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+              h-screen
+            `}
+          >
+            {/* Backdrop */}
+            {isSidebarOpen && (
+              <div
+                className="fixed inset-0 bg-black/30 z-40"
+                onClick={() => setIsSidebarOpen(false)}
+              />
+            )}
+
+            {/* Sidebar content */}
+            <div className="relative z-50 h-full overflow-y-auto bg-white shadow-xl">
+              {/* Mobile header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-white sticky top-0 z-10">
+                <h3 className="font-semibold text-gray-900">Filters</h3>
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <BrowseSidebar
+                categories={categories}
+                activeCategoryId={activeCategoryId}
+                onCategoryChange={setActiveCategoryId}
+                activeCondition={activeCondition}
+                onConditionChange={setActiveCondition}
+                activeCity={activeCity}
+                onCityChange={setActiveCity}
+                minPrice={minPrice}
+                maxPrice={maxPrice}
+                onMinPriceChange={setMinPrice}
+                onMaxPriceChange={setMaxPrice}
+                showSold={showSold}
+                onToggleSold={setShowSold}
+                isCollapsed={false}
               />
             </div>
           </div>
 
           {/* Results */}
           <div
-            className={`flex-1 min-w-0 transition-all duration-300 ease-in-out`}
+            className={`flex-1 pt-5 min-w-0 transition-all duration-300 ease-in-out`}
           >
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-sm font-medium text-gray-600">
@@ -326,7 +420,7 @@ export default function BrowsePage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                   {displayedListings.map((listing) => (
                     <ListingCard key={listing.id} listing={listing} />
                   ))}

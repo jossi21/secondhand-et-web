@@ -7,6 +7,7 @@ export interface ListingSearchFilters {
   city?: string;
   minPrice?: number;
   maxPrice?: number;
+  status?: "active" | "sold" | "removed" | "all";
   page?: number;
   limit?: number;
 }
@@ -23,6 +24,7 @@ export function searchListings(
     params.set("minPrice", String(filters.minPrice));
   if (filters.maxPrice !== undefined)
     params.set("maxPrice", String(filters.maxPrice));
+  if (filters.status) params.set("status", filters.status);
   params.set("page", String(filters.page ?? 1));
   params.set("limit", String(filters.limit ?? 24));
 
@@ -70,4 +72,8 @@ export function updateListing(id: string, input: UpdateListingInput) {
     method: "PATCH",
     body: JSON.stringify(input),
   });
+}
+
+export function deleteListing(id: string) {
+  return apiFetch<void>(`/listings/${id}`, { method: "DELETE" });
 }

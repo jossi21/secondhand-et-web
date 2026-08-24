@@ -28,9 +28,9 @@ export function ListingCard({ listing }: { listing: ListingResponse }) {
 
   return (
     <Link href={`/listings/${listing.id}`} className="block h-full">
-      <article className="group flex h-full flex-col cursor-pointer overflow-hidden rounded-xl bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+      <article className="group flex h-full flex-col cursor-pointer overflow-hidden rounded-xl bg-gray-100/70 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:bg-white">
         {/* Image - fixed aspect ratio */}
-        <div className="relative aspect-4/3 overflow-hidden bg-gray-100 shrink-0">
+        <div className="relative aspect-4/3 overflow-hidden bg-gray-200/70 shrink-0">
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -40,7 +40,7 @@ export function ListingCard({ listing }: { listing: ListingResponse }) {
               loading="lazy"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-gray-300 text-sm">
+            <div className="flex h-full w-full items-center justify-center text-gray-400 text-sm">
               No image
             </div>
           )}
@@ -78,10 +78,10 @@ export function ListingCard({ listing }: { listing: ListingResponse }) {
         </div>
 
         {/* Content - fixed heights */}
-        <div className="flex flex-1 flex-col p-3.5">
+        <div className="flex flex-1 flex-col p-3.5 transition-colors duration-300">
           {/* Title - fixed height for 2 lines */}
           <div className="h-11 mb-1">
-            <h3 className="text-sm font-bold leading-snug text-gray-900 transition-colors group-hover:text-orange-700 line-clamp-2">
+            <h3 className="text-sm font-bold leading-snug text-gray-800 transition-colors group-hover:text-gray-900 line-clamp-2">
               {listing.title}
             </h3>
           </div>
@@ -98,10 +98,10 @@ export function ListingCard({ listing }: { listing: ListingResponse }) {
             {/* Price and location - fixed height */}
             <div className="h-12 mb-2 flex items-end justify-between">
               <div>
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-700">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-600">
                   ETB
                 </span>
-                <span className="ml-0.5 text-base font-bold tabular-nums text-orange-700">
+                <span className="ml-0.5 text-base font-bold tabular-nums text-gray-800">
                   {formatPrice(listing.price)}
                 </span>
               </div>
@@ -116,7 +116,7 @@ export function ListingCard({ listing }: { listing: ListingResponse }) {
             </div>
 
             {/* Seller info - fixed height */}
-            <div className="h-9 border-t border-gray-100 pt-2">
+            <div className="h-9 border-t border-gray-200/70 pt-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span className="text-xs font-medium text-gray-500 truncate max-w-25">
