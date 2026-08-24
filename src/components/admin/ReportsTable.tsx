@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { MoreVertical } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { dismissReport } from "@/lib/api/reports";
@@ -24,6 +25,7 @@ type PendingAction = {
 };
 
 export function ReportsTable() {
+  const router = useRouter();
   const [reports, setReports] = useState<ReportResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +91,10 @@ export function ReportsTable() {
 
   function menuItemsFor(report: ReportResponse): DropdownItem[] {
     return [
+      {
+        label: "View Detail",
+        onSelect: () => router.push(`/admin/reports/${report.id}`),
+      },
       {
         label: "Dismiss",
         onSelect: () => setPending({ type: "dismiss", report }),

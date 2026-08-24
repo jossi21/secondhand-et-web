@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
+  Package,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/admin/buyers", label: "Buyer Management", icon: User2 },
   { href: "/admin/sellers", label: "Seller Management", icon: User },
   { href: "/admin/categories", label: "Categories", icon: LayoutGrid },
+  { href: "/admin/listings", label: "Listings", icon: Package },
   { href: "/admin/reports", label: "Reports", icon: Flag },
   { href: "/admin/reviews", label: "Reviews & Comments", icon: Star },
 ];

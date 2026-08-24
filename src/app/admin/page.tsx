@@ -22,6 +22,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
+import Link from "next/link";
 
 type StatColor = "terracotta" | "green" | "blue" | "amber" | "purple" | "red";
 
@@ -384,7 +385,7 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
             </a>
-            <a
+            <Link
               href="/admin/reports"
               className="block w-full rounded-xl border border-border p-3 text-left transition-colors hover:bg-cream-dim hover:border-terracotta/30"
             >
@@ -399,7 +400,7 @@ export default function AdminDashboardPage() {
                   </p>
                 </div>
               </div>
-            </a>
+            </Link>
             <a
               href="/admin/users"
               className="block w-full rounded-xl border border-border p-3 text-left transition-colors hover:bg-cream-dim hover:border-terracotta/30"

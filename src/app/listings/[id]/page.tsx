@@ -1,18 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Eye, Clock, Heart, Flag, Tag, BadgeCheck } from "lucide-react";
 import { getListing, searchListings } from "@/lib/api/listings";
-import { ListingResponse } from "@/lib/types";
+import { getSellerRatings, deleteRating } from "@/lib/api/ratings";
+import {
+  ListingResponse,
+  RatingResponse,
+  SellerRatingSummary,
+} from "@/lib/types";
 import { conditionLabel } from "@/lib/conditionLabels";
 import { resolveMediaUrl } from "@/lib/media";
 import { useCategories } from "@/hooks/useCategories";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { SellerContactLink } from "@/components/listings/SellerContactLink";
-import { apiFetch, ApiError } from "@/lib/api";
-import { toggleSavedListing } from "@/lib/api/savedListings";
 import { ReportListingModal } from "@/components/listings/ReportListingModal";
+import { RateSellerModal } from "@/components/listings/RateSellerModal";
+import { SellerReviews } from "@/components/listings/SellerReviews";
+import { DeleteDialog } from "@/components/ui/DeleteDialog";
+import { useToast } from "@/components/ui/Toast";
+import { toggleSavedListing } from "@/lib/api/savedListings";
+import { apiFetch, ApiError } from "@/lib/api";
 
 function formatPrice(price: number): string {
   return price.toLocaleString("en-US");
@@ -35,13 +45,26 @@ export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { categories } = useCategories();
+  const { user } = useAuth();
+  const toast = useToast();
+
   const [listing, setListing] = useState<ListingResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [saved, setSaved] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
   const [similar, setSimilar] = useState<ListingResponse[]>([]);
+
   const [reportOpen, setReportOpen] = useState(false);
+
+  const [ratingSummary, setRatingSummary] =
+    useState<SellerRatingSummary | null>(null);
+  const [rateModalOpen, setRateModalOpen] = useState(false);
+  const [editingRating, setEditingRating] = useState<RatingResponse | null>(
+    null,
+  );
+  const [deleteRatingTarget, setDeleteRatingTarget] =
+    useState<RatingResponse | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,6 +123,21 @@ export default function ListingDetailPage() {
     };
   }, [listing]);
 
+  const loadRatings = useCallback(async () => {
+    if (!listing) return;
+    try {
+      const summary = await getSellerRatings(listing.sellerId);
+      setRatingSummary(summary);
+    } catch {
+      setRatingSummary(null);
+    }
+  }, [listing]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadRatings();
+  }, [loadRatings]);
+
   async function toggleSave() {
     if (saveBusy) return;
     setSaveBusy(true);
@@ -116,9 +154,27 @@ export default function ListingDetailPage() {
     }
   }
 
+  async function handleConfirmDeleteRating() {
+    if (!deleteRatingTarget) return;
+    try {
+      await deleteRating(deleteRatingTarget.id);
+      toast.success("Review deleted");
+      loadRatings();
+    } catch (err) {
+      toast.error(
+        "Couldn't delete review",
+        err instanceof ApiError ? err.message : "Please try again.",
+      );
+    }
+  }
+
   const categoryName =
     categories.find((c) => c.id === listing?.categoryId)?.name ??
     "Uncategorized";
+
+  const myRating = ratingSummary?.ratings.find(
+    (r) => r.fromUserId === user?.id,
+  );
 
   if (isLoading) {
     return (
@@ -169,7 +225,7 @@ export default function ListingDetailPage() {
 
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
           <div>
-            <div className="aspect-4/3 overflow-hidden rounded-2xl bg-white">
+            <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-white">
               {images ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -276,6 +332,17 @@ export default function ListingDetailPage() {
               </button>
             </div>
 
+            {user?.role === "buyer" && (
+              <button
+                onClick={() =>
+                  myRating ? setEditingRating(myRating) : setRateModalOpen(true)
+                }
+                className="mt-3 w-full rounded-full border border-terracotta px-6 py-3 text-sm font-medium text-terracotta hover:bg-terracotta-tint"
+              >
+                {myRating ? "Edit Your Review" : "Rate This Seller"}
+              </button>
+            )}
+
             {listing.seller && (
               <div className="mt-6 rounded-2xl bg-white p-5">
                 <h2 className="mb-4 font-display text-lg font-semibold text-ink">
@@ -304,6 +371,17 @@ export default function ListingDetailPage() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {ratingSummary && (
+              <SellerReviews
+                average={ratingSummary.average}
+                count={ratingSummary.count}
+                ratings={ratingSummary.ratings}
+                currentUserId={user?.id}
+                onEditOwn={(r) => setEditingRating(r)}
+                onDeleteOwn={(r) => setDeleteRatingTarget(r)}
+              />
             )}
           </div>
         </div>
@@ -373,12 +451,33 @@ export default function ListingDetailPage() {
           </div>
         )}
       </div>
+
       {reportOpen && (
         <ReportListingModal
           listingId={listing.id}
           onClose={() => setReportOpen(false)}
         />
       )}
+
+      {(rateModalOpen || editingRating) && (
+        <RateSellerModal
+          sellerId={listing.sellerId}
+          existing={editingRating}
+          onClose={() => {
+            setRateModalOpen(false);
+            setEditingRating(null);
+          }}
+          onSaved={() => loadRatings()}
+        />
+      )}
+
+      <DeleteDialog
+        open={!!deleteRatingTarget}
+        onClose={() => setDeleteRatingTarget(null)}
+        onConfirm={handleConfirmDeleteRating}
+        title="Delete this review?"
+        description="This will permanently remove your review of this seller."
+      />
     </div>
   );
 }
