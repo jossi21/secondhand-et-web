@@ -28,11 +28,23 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [mobileOpen]);
+
   return (
     <>
-      <header className="sticky top-0 z-50 overflow-x-hidden border-b border-white/10 bg-ink/40 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-ink/40 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-10 lg:py-4">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 shrink-0">
             <span className="font-display text-xl font-semibold text-white sm:text-2xl">
               SecondHand
             </span>
@@ -50,10 +62,10 @@ export function Navbar() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link
               href={user ? "/listings/new" : "/login"}
-              className="rounded-full bg-terracotta px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-terracotta-dark sm:px-5 sm:text-sm"
+              className="rounded-full bg-terracotta px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-terracotta-dark sm:px-5 sm:text-sm whitespace-nowrap"
             >
               <span className="hidden sm:inline">Post Item</span>
               <span className="sm:hidden">Post</span>
@@ -67,10 +79,12 @@ export function Navbar() {
                   onClick={() => setMenuOpen((v) => !v)}
                   className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/15"
                 >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-terracotta font-mono-data text-xs text-white">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-terracotta font-mono-data text-xs text-white shrink-0">
                     {user.fullName.charAt(0).toUpperCase()}
                   </span>
-                  {user.fullName.split(" ")[0]}
+                  <span className="hidden sm:inline">
+                    {user.fullName.split(" ")[0]}
+                  </span>
                 </button>
 
                 {menuOpen && (
@@ -90,13 +104,6 @@ export function Navbar() {
                     >
                       My Dashboard
                     </Link>
-                    <Link
-                      href="/saved"
-                      onClick={() => setMenuOpen(false)}
-                      className="block px-4 py-2.5 text-sm text-ink hover:bg-cream-dim"
-                    >
-                      My Saved
-                    </Link>
                     <button
                       onClick={() => {
                         setMenuOpen(false);
@@ -112,7 +119,7 @@ export function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="hidden rounded-full border border-white/20 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10 md:block"
+                className="hidden rounded-full border border-white/20 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10 md:block whitespace-nowrap"
               >
                 Sign In
               </Link>
@@ -121,7 +128,7 @@ export function Navbar() {
             <button
               onClick={() => setMobileOpen((v) => !v)}
               aria-label="Toggle menu"
-              className="rounded-full p-2 text-white hover:bg-white/10 md:hidden"
+              className="rounded-full p-2 text-white hover:bg-white/10 md:hidden shrink-0"
             >
               {mobileOpen ? (
                 <X className="h-5 w-5" />
@@ -133,6 +140,7 @@ export function Navbar() {
         </div>
       </header>
 
+      {/* Mobile overlay */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/70 md:hidden"
@@ -140,6 +148,7 @@ export function Navbar() {
         />
       )}
 
+      {/* Mobile drawer */}
       <div
         className={`fixed left-0 top-0 z-50 h-full w-72 transform bg-ink shadow-xl transition-transform duration-300 ease-in-out md:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
@@ -163,11 +172,11 @@ export function Navbar() {
           {user ? (
             <>
               <div className="mt-1 flex items-center gap-2 border-t border-white/10 px-3 py-2.5">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-terracotta font-mono-data text-xs text-white">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-terracotta font-mono-data text-xs text-white shrink-0">
                   {user.fullName.charAt(0).toUpperCase()}
                 </span>
-                <div>
-                  <p className="text-sm font-medium text-white">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-white truncate">
                     {user.fullName}
                   </p>
                   <p className="font-mono-data text-xs capitalize text-white/60">
