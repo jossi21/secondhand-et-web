@@ -181,3 +181,10 @@ export interface SellerRatingSummary {
   count: number;
   ratings: RatingResponse[];
 }
+
+export interface PublicStatsResponse {
+  activeListings: number;
+  soldListings: number;
+  citiesCovered: number;
+  verifiedSellers: number;
+}

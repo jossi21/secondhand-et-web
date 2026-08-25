@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Search, X } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import {
   searchListings,
@@ -9,6 +9,7 @@ import {
   deleteListing,
 } from "@/lib/api/listings";
 import { ListingResponse } from "@/lib/types";
+import { useCategories } from "@/hooks/useCategories";
 import { Dropdown, type DropdownItem } from "@/components/ui/Dropdown";
 import { DeleteDialog } from "@/components/ui/DeleteDialog";
 import { useToast } from "@/components/ui/Toast";
@@ -23,7 +24,11 @@ const TABS: { value: StatusTab; label: string }[] = [
   { value: "removed", label: "Removed" },
 ];
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 8;
+const SEARCH_DEBOUNCE_MS = 400;
+
+const inputClass =
+  "rounded-lg border border-border bg-cream-dim px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-soft/70 focus:border-terracotta";
 
 function statusBadgeClass(status: string): string {
   switch (status) {
@@ -53,8 +58,30 @@ export function AdminListingsTable() {
   const [deleteTarget, setDeleteTarget] = useState<ListingResponse | null>(
     null,
   );
+
+  const [searchInput, setSearchInput] = useState("");
+  const [q, setQ] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [city, setCity] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+
+  const { categories } = useCategories();
   const abortRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toast = useToast();
+
+  // Debounce the free-text search box into `q`
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setQ(searchInput.trim());
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchInput]);
 
   const load = useCallback(async () => {
     abortRef.current?.abort();
@@ -65,7 +92,16 @@ export function AdminListingsTable() {
     setError(null);
     try {
       const result = await searchListings(
-        { status: tab, page, limit: PAGE_SIZE },
+        {
+          status: tab,
+          page,
+          limit: PAGE_SIZE,
+          q: q || undefined,
+          categoryId: categoryId || undefined,
+          city: city || undefined,
+          minPrice: minPrice ? Number(minPrice) : undefined,
+          maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        },
         controller.signal,
       );
       setListings(result.data);
@@ -80,7 +116,7 @@ export function AdminListingsTable() {
     } finally {
       setLoading(false);
     }
-  }, [tab, page]);
+  }, [tab, page, q, categoryId, city, minPrice, maxPrice]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -92,6 +128,18 @@ export function AdminListingsTable() {
     setTab(next);
     setPage(1);
   }
+
+  function clearFilters() {
+    setSearchInput("");
+    setQ("");
+    setCategoryId("");
+    setCity("");
+    setMinPrice("");
+    setMaxPrice("");
+    setPage(1);
+  }
+
+  const hasActiveFilters = q || categoryId || city || minPrice || maxPrice;
 
   async function handleQuickStatus(
     listing: ListingResponse,
@@ -186,6 +234,78 @@ export function AdminListingsTable() {
         </span>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
+          <input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search title or description…"
+            className={`${inputClass} w-full pl-9`}
+          />
+        </div>
+
+        <select
+          value={categoryId}
+          onChange={(e) => {
+            setCategoryId(e.target.value);
+            setPage(1);
+          }}
+          className={inputClass}
+        >
+          <option value="">All categories</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+
+        <input
+          value={city}
+          onChange={(e) => {
+            setCity(e.target.value);
+            setPage(1);
+          }}
+          placeholder="City"
+          className={`${inputClass} w-28`}
+        />
+
+        <input
+          type="number"
+          min={0}
+          value={minPrice}
+          onChange={(e) => {
+            setMinPrice(e.target.value);
+            setPage(1);
+          }}
+          placeholder="Min ETB"
+          className={`${inputClass} w-28`}
+        />
+
+        <input
+          type="number"
+          min={0}
+          value={maxPrice}
+          onChange={(e) => {
+            setMaxPrice(e.target.value);
+            setPage(1);
+          }}
+          placeholder="Max ETB"
+          className={`${inputClass} w-28`}
+        />
+
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            className="flex items-center gap-1 rounded-full border border-border px-3 py-2 text-sm font-medium text-ink-soft hover:bg-cream-dim"
+          >
+            <X className="h-3.5 w-3.5" />
+            Clear
+          </button>
+        )}
+      </div>
+
       {loading ? (
         <p className="px-6 py-8 text-center text-ink-soft">Loading…</p>
       ) : error ? (
@@ -200,7 +320,7 @@ export function AdminListingsTable() {
         </div>
       ) : listings.length === 0 ? (
         <p className="px-6 py-12 text-center text-ink-soft">
-          No listings in this view.
+          No listings match these filters.
         </p>
       ) : (
         <>

@@ -21,6 +21,7 @@ import {
   Flag,
   TrendingUp,
   TrendingDown,
+  Activity,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -56,13 +57,15 @@ function StatCard({
 
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-border bg-white p-6 transition-all hover:shadow-lg hover:-translate-y-0.5">
-      <div className="absolute inset-0 bg-linear-to-br from-transparent to-cream-dim/30 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent to-cream-dim/30 opacity-0 group-hover:opacity-100 transition-opacity" />
 
       <div className="relative flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="font-mono-data text-xs uppercase tracking-wider text-ink-soft/70">
-            {label}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="font-mono-data text-xs uppercase tracking-wider text-ink-soft/70">
+              {label}
+            </p>
+          </div>
           <span className="mt-1 block font-mono-data text-2xl font-semibold text-ink">
             {value}
           </span>
@@ -189,7 +192,7 @@ export default function AdminDashboardPage() {
     fetchData();
   }, []);
 
-  // Mock trends for demonstration (will be replaced with real calculations later)
+  // Mock trends for demonstration
   const mockTrends = {
     listings: 12,
     active: -3,
@@ -226,7 +229,7 @@ export default function AdminDashboardPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Total Listings"
+          label="Totals"
           value={listingsTotal ?? "…"}
           icon={Package}
           trend={mockTrends.listings}
@@ -234,7 +237,7 @@ export default function AdminDashboardPage() {
           color="terracotta"
         />
         <StatCard
-          label="Active Listings"
+          label="Active"
           value={activeTotal ?? "…"}
           icon={CheckCircle}
           trend={mockTrends.active}
@@ -242,7 +245,7 @@ export default function AdminDashboardPage() {
           color="green"
         />
         <StatCard
-          label="Sold Listings"
+          label="Sold"
           value={soldTotal ?? "…"}
           icon={DollarSign}
           trend={mockTrends.sold}

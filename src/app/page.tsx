@@ -4,6 +4,7 @@ import { serverApiFetch } from "@/lib/api-server";
 import { CategoryResponse, PaginatedListingResponse } from "@/lib/types";
 import { CategoryCard } from "@/components/categories/CategoryCard";
 import { ListingCard } from "@/components/browse/ListingCard";
+import { PublicStatsResponse } from "@/lib/types";
 
 const QUICK_SEARCHES = ["iPhone", "Laptop", "Toyota", "Sofa", "Refrigerator"];
 
@@ -33,7 +34,9 @@ const HOW_IT_WORKS = [
 
 async function getCategories(): Promise<CategoryResponse[]> {
   try {
-    return await serverApiFetch<CategoryResponse[]>("/categories");
+    return await serverApiFetch<CategoryResponse[]>(
+      "/categories/get-categories",
+    );
   } catch {
     return [];
   }
@@ -47,10 +50,24 @@ async function getRecentListings(): Promise<PaginatedListingResponse> {
   }
 }
 
+async function getPublicStats(): Promise<PublicStatsResponse> {
+  try {
+    return await serverApiFetch<PublicStatsResponse>("/dashboard/public-stats");
+  } catch {
+    return {
+      activeListings: 0,
+      soldListings: 0,
+      citiesCovered: 0,
+      verifiedSellers: 0,
+    };
+  }
+}
+
 export default async function Home() {
-  const [categories, listingsPage] = await Promise.all([
+  const [categories, listingsPage, stats] = await Promise.all([
     getCategories(),
     getRecentListings(),
+    getPublicStats(),
   ]);
 
   return (
@@ -119,10 +136,10 @@ export default async function Home() {
       <section className="border-b border-border bg-white">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-6 py-8 lg:grid-cols-4 lg:px-10">
           {[
-            ["764", "Active Listings"],
-            ["312", "Verified Sellers"],
-            ["8", "Cities Covered"],
-            ["2,400+", "Transactions"],
+            [stats.activeListings.toLocaleString(), "Active Listings"],
+            [stats.verifiedSellers.toLocaleString(), "Verified Sellers"],
+            [stats.citiesCovered.toLocaleString(), "Cities Covered"],
+            [stats.soldListings.toLocaleString(), "Transactions"],
           ].map(([value, label]) => (
             <div key={label}>
               <span className="font-mono-data text-3xl font-semibold text-ink">
