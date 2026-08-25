@@ -47,6 +47,108 @@ function formatPrice(price: number): string {
   return price.toLocaleString("en-US");
 }
 
+// Extracted filter/search component
+function ListingFilters({
+  searchInput,
+  setSearchInput,
+  categoryId,
+  setCategoryId,
+  city,
+  setCity,
+  minPrice,
+  setMinPrice,
+  maxPrice,
+  setMaxPrice,
+  hasActiveFilters,
+  clearFilters,
+  categories,
+}: {
+  searchInput: string;
+  setSearchInput: (value: string) => void;
+  categoryId: string;
+  setCategoryId: (value: string) => void;
+  city: string;
+  setCity: (value: string) => void;
+  minPrice: string;
+  setMinPrice: (value: string) => void;
+  maxPrice: string;
+  setMaxPrice: (value: string) => void;
+  hasActiveFilters: boolean;
+  clearFilters: () => void;
+  categories: { id: string; name: string }[];
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-white p-4">
+      <div className="relative flex-1 min-w-[200px]">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
+        <input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Search title or description…"
+          className={`${inputClass} w-full pl-9`}
+        />
+      </div>
+
+      <select
+        value={categoryId}
+        onChange={(e) => {
+          setCategoryId(e.target.value);
+          // Page reset is handled by parent
+        }}
+        className={inputClass}
+      >
+        <option value="">All categories</option>
+        {categories.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+
+      <input
+        value={city}
+        onChange={(e) => {
+          setCity(e.target.value);
+        }}
+        placeholder="City"
+        className={`${inputClass} w-28`}
+      />
+
+      <input
+        type="number"
+        min={0}
+        value={minPrice}
+        onChange={(e) => {
+          setMinPrice(e.target.value);
+        }}
+        placeholder="Min ETB"
+        className={`${inputClass} w-28`}
+      />
+
+      <input
+        type="number"
+        min={0}
+        value={maxPrice}
+        onChange={(e) => {
+          setMaxPrice(e.target.value);
+        }}
+        placeholder="Max ETB"
+        className={`${inputClass} w-28`}
+      />
+
+      {hasActiveFilters && (
+        <button
+          onClick={clearFilters}
+          className="flex items-center gap-1 rounded-full border border-border px-3 py-2 text-sm font-medium text-ink-soft hover:bg-cream-dim"
+        >
+          <X className="h-3.5 w-3.5" />
+          Clear
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function AdminListingsTable() {
   const [tab, setTab] = useState<StatusTab>("all");
   const [page, setPage] = useState(1);
@@ -70,6 +172,14 @@ export function AdminListingsTable() {
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toast = useToast();
+
+  // Reset page to 1 when any filter changes
+  const handleFilterChange = useCallback((setter: (value: any) => void) => {
+    return (value: any) => {
+      setter(value);
+      setPage(1);
+    };
+  }, []);
 
   // Debounce the free-text search box into `q`
   useEffect(() => {
@@ -119,7 +229,6 @@ export function AdminListingsTable() {
   }, [tab, page, q, categoryId, city, minPrice, maxPrice]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     return () => abortRef.current?.abort();
   }, [load]);
@@ -214,233 +323,197 @@ export function AdminListingsTable() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <div className="rounded-2xl border border-border bg-white overflow-hidden">
-      <div className="flex items-center gap-1 border-b border-border bg-gray-50/50 px-4 py-3">
-        {TABS.map((t) => (
-          <button
-            key={t.value}
-            onClick={() => changeTab(t.value)}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-              tab === t.value
-                ? "bg-terracotta text-white"
-                : "text-ink-soft hover:bg-cream-dim"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-        <span className="ml-auto text-sm text-ink-soft">
-          {total} {total === 1 ? "listing" : "listings"}
-        </span>
-      </div>
+    <div className="space-y-4">
+      {/* Filters Section - Now outside the table */}
+      <ListingFilters
+        searchInput={searchInput}
+        setSearchInput={setSearchInput}
+        categoryId={categoryId}
+        setCategoryId={(value) => {
+          setCategoryId(value);
+          setPage(1);
+        }}
+        city={city}
+        setCity={(value) => {
+          setCity(value);
+          setPage(1);
+        }}
+        minPrice={minPrice}
+        setMinPrice={(value) => {
+          setMinPrice(value);
+          setPage(1);
+        }}
+        maxPrice={maxPrice}
+        setMaxPrice={(value) => {
+          setMaxPrice(value);
+          setPage(1);
+        }}
+        hasActiveFilters={hasActiveFilters}
+        clearFilters={clearFilters}
+        categories={categories}
+      />
 
-      <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
-          <input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search title or description…"
-            className={`${inputClass} w-full pl-9`}
-          />
-        </div>
-
-        <select
-          value={categoryId}
-          onChange={(e) => {
-            setCategoryId(e.target.value);
-            setPage(1);
-          }}
-          className={inputClass}
-        >
-          <option value="">All categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
+      {/* Table Section */}
+      <div className="rounded-2xl border border-border bg-white overflow-hidden">
+        <div className="flex items-center gap-1 border-b border-border bg-gray-50/50 px-4 py-3">
+          {TABS.map((t) => (
+            <button
+              key={t.value}
+              onClick={() => changeTab(t.value)}
+              className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                tab === t.value
+                  ? "bg-terracotta text-white"
+                  : "text-ink-soft hover:bg-cream-dim"
+              }`}
+            >
+              {t.label}
+            </button>
           ))}
-        </select>
-
-        <input
-          value={city}
-          onChange={(e) => {
-            setCity(e.target.value);
-            setPage(1);
-          }}
-          placeholder="City"
-          className={`${inputClass} w-28`}
-        />
-
-        <input
-          type="number"
-          min={0}
-          value={minPrice}
-          onChange={(e) => {
-            setMinPrice(e.target.value);
-            setPage(1);
-          }}
-          placeholder="Min ETB"
-          className={`${inputClass} w-28`}
-        />
-
-        <input
-          type="number"
-          min={0}
-          value={maxPrice}
-          onChange={(e) => {
-            setMaxPrice(e.target.value);
-            setPage(1);
-          }}
-          placeholder="Max ETB"
-          className={`${inputClass} w-28`}
-        />
-
-        {hasActiveFilters && (
-          <button
-            onClick={clearFilters}
-            className="flex items-center gap-1 rounded-full border border-border px-3 py-2 text-sm font-medium text-ink-soft hover:bg-cream-dim"
-          >
-            <X className="h-3.5 w-3.5" />
-            Clear
-          </button>
-        )}
-      </div>
-
-      {loading ? (
-        <p className="px-6 py-8 text-center text-ink-soft">Loading…</p>
-      ) : error ? (
-        <div className="px-6 py-8 text-center">
-          <p className="text-red-600">{error}</p>
-          <button
-            onClick={() => load()}
-            className="mt-2 rounded-full bg-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-terracotta-dark"
-          >
-            Retry
-          </button>
+          <span className="ml-auto text-sm text-ink-soft">
+            {total} {total === 1 ? "listing" : "listings"}
+          </span>
         </div>
-      ) : listings.length === 0 ? (
-        <p className="px-6 py-12 text-center text-ink-soft">
-          No listings match these filters.
-        </p>
-      ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-border font-mono-data text-xs uppercase tracking-wide text-ink-soft">
-                  <th className="px-6 py-3 font-medium whitespace-nowrap">
-                    Title
-                  </th>
-                  <th className="px-6 py-3 font-medium whitespace-nowrap">
-                    Price
-                  </th>
-                  <th className="px-6 py-3 font-medium whitespace-nowrap">
-                    Seller
-                  </th>
-                  <th className="px-6 py-3 font-medium whitespace-nowrap">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 font-medium whitespace-nowrap">
-                    Listed
-                  </th>
-                  <th className="px-6 py-3 font-medium whitespace-nowrap text-right">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {listings.map((listing) => (
-                  <tr
-                    key={listing.id}
-                    className="border-b border-border last:border-0 hover:bg-cream-dim/30 transition-colors"
-                  >
-                    <td className="px-6 py-3 font-medium text-ink max-w-xs truncate">
-                      {listing.title}
-                    </td>
-                    <td className="px-6 py-3 font-mono-data text-ink-soft whitespace-nowrap">
-                      ETB {formatPrice(listing.price)}
-                    </td>
-                    <td className="px-6 py-3 text-ink-soft whitespace-nowrap">
-                      {listing.seller?.fullName ?? "—"}
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${statusBadgeClass(
-                          listing.status,
-                        )}`}
-                      >
-                        {listing.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 text-ink-soft whitespace-nowrap">
-                      {new Date(listing.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-3 text-right">
-                      <div className="flex justify-end">
-                        <Dropdown
-                          align="right"
-                          trigger={
-                            <button
-                              aria-label="Open actions"
-                              className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </button>
-                          }
-                          items={menuItemsFor(listing)}
-                        />
-                      </div>
-                    </td>
+
+        {loading ? (
+          <div className="px-6 py-8 text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-terracotta border-t-transparent" />
+            <p className="mt-2 text-ink-soft">Loading…</p>
+          </div>
+        ) : error ? (
+          <div className="px-6 py-8 text-center">
+            <p className="text-red-600">{error}</p>
+            <button
+              onClick={() => load()}
+              className="mt-2 rounded-full bg-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-terracotta-dark"
+            >
+              Retry
+            </button>
+          </div>
+        ) : listings.length === 0 ? (
+          <p className="px-6 py-12 text-center text-ink-soft">
+            No listings match these filters.
+          </p>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border font-mono-data text-xs uppercase tracking-wide text-ink-soft">
+                    <th className="px-6 py-3 font-medium whitespace-nowrap">
+                      Title
+                    </th>
+                    <th className="px-6 py-3 font-medium whitespace-nowrap">
+                      Price
+                    </th>
+                    <th className="px-6 py-3 font-medium whitespace-nowrap">
+                      Seller
+                    </th>
+                    <th className="px-6 py-3 font-medium whitespace-nowrap">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 font-medium whitespace-nowrap">
+                      Listed
+                    </th>
+                    <th className="px-6 py-3 font-medium whitespace-nowrap text-right">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {listings.map((listing) => (
+                    <tr
+                      key={listing.id}
+                      className="border-b border-border last:border-0 hover:bg-cream-dim/30 transition-colors"
+                    >
+                      <td className="px-6 py-3 font-medium text-ink max-w-xs truncate">
+                        {listing.title}
+                      </td>
+                      <td className="px-6 py-3 font-mono-data text-ink-soft whitespace-nowrap">
+                        ETB {formatPrice(listing.price)}
+                      </td>
+                      <td className="px-6 py-3 text-ink-soft whitespace-nowrap">
+                        {listing.seller?.fullName ?? "—"}
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${statusBadgeClass(
+                            listing.status,
+                          )}`}
+                        >
+                          {listing.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3 text-ink-soft whitespace-nowrap">
+                        {new Date(listing.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-3 text-right">
+                        <div className="flex justify-end">
+                          <Dropdown
+                            align="right"
+                            trigger={
+                              <button
+                                aria-label="Open actions"
+                                className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </button>
+                            }
+                            items={menuItemsFor(listing)}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-          <div className="flex items-center justify-between border-t border-border px-6 py-3">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="rounded-full border border-border px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-cream-dim disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="text-sm text-ink-soft">
-              Page {page} of {totalPages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="rounded-full border border-border px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-cream-dim disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
-        </>
-      )}
+            <div className="flex items-center justify-between border-t border-border px-6 py-3">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="rounded-full border border-border px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-cream-dim disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-ink-soft">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="rounded-full border border-border px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-cream-dim disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </>
+        )}
 
-      <EditListingCard
-        listing={editTarget}
-        onClose={() => setEditTarget(null)}
-        onSaved={() => load()}
-      />
+        <EditListingCard
+          listing={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSaved={() => load()}
+        />
 
-      <DeleteDialog
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={handleConfirmDelete}
-        title="Delete this listing?"
-        itemName={deleteTarget?.title}
-        description={
-          deleteTarget && (
-            <>
-              <span className="font-medium">{deleteTarget.title}</span> will be
-              permanently removed from the system, including from this admin
-              view. This is different from marking it &quot;Removed&quot;.
-            </>
-          )
-        }
-      />
+        <DeleteDialog
+          open={!!deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleConfirmDelete}
+          title="Delete this listing?"
+          itemName={deleteTarget?.title}
+          description={
+            deleteTarget && (
+              <>
+                <span className="font-medium">{deleteTarget.title}</span> will
+                be permanently removed from the system, including from this
+                admin view. This is different from marking it
+                &quot;Removed&quot;.
+              </>
+            )
+          }
+        />
+      </div>
     </div>
   );
 }

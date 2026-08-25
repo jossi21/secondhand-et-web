@@ -3,7 +3,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Eye, Clock, Heart, Flag, Tag, BadgeCheck } from "lucide-react";
+import {
+  MapPin,
+  Eye,
+  Clock,
+  Heart,
+  Flag,
+  Tag,
+  BadgeCheck,
+  Share2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { getListing, searchListings } from "@/lib/api/listings";
 import { getSellerRatings, deleteRating } from "@/lib/api/ratings";
 import {
@@ -176,6 +187,28 @@ export default function ListingDetailPage() {
     (r) => r.fromUserId === user?.id,
   );
 
+  async function handleShare() {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: listing?.title,
+          text: `Check out this listing: ${listing?.title}`,
+          url: window.location.href,
+        });
+      } catch {
+        // User cancelled or share failed
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied to clipboard!");
+      } catch {
+        toast.error("Couldn't copy link");
+      }
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center bg-cream-dim">
@@ -190,7 +223,7 @@ export default function ListingDetailPage() {
         <p className="text-ink-soft">Listing not found.</p>
         <button
           onClick={() => router.back()}
-          className="rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-cream-dim"
+          className="rounded-full border border-border bg-white px-6 py-3 text-sm font-medium text-ink hover:bg-cream-dim transition-colors"
         >
           Go back
         </button>
@@ -212,11 +245,14 @@ export default function ListingDetailPage() {
     <div className="min-h-screen bg-cream-dim">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <nav className="mb-6 flex items-center gap-2 text-sm text-ink-soft">
-          <Link href="/" className="hover:text-terracotta">
+          <Link href="/" className="hover:text-terracotta transition-colors">
             Home
           </Link>
           <span>/</span>
-          <Link href="/browse" className="hover:text-terracotta">
+          <Link
+            href="/browse"
+            className="hover:text-terracotta transition-colors"
+          >
             Browse
           </Link>
           <span>/</span>
@@ -224,8 +260,9 @@ export default function ListingDetailPage() {
         </nav>
 
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
+          {/* Left Column - Image & Contact */}
           <div>
-            <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-white">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-white group">
               {images ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -238,17 +275,42 @@ export default function ListingDetailPage() {
                   No image
                 </div>
               )}
+              {images && images.length > 1 && (
+                <>
+                  <button
+                    onClick={() =>
+                      setActiveImage((prev) =>
+                        prev > 0 ? prev - 1 : images.length - 1,
+                      )
+                    }
+                    className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                  >
+                    <ChevronLeft size={20} className="text-ink" />
+                  </button>
+                  <button
+                    onClick={() =>
+                      setActiveImage((prev) =>
+                        prev < images.length - 1 ? prev + 1 : 0,
+                      )
+                    }
+                    className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                  >
+                    <ChevronRight size={20} className="text-ink" />
+                  </button>
+                </>
+              )}
             </div>
+
             {images && images.length > 1 && (
               <div className="mt-3 flex gap-2">
                 {images.map((img, i) => (
                   <button
                     key={img.id}
                     onClick={() => setActiveImage(i)}
-                    className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 ${
+                    className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
                       i === activeImage
-                        ? "border-terracotta"
-                        : "border-transparent"
+                        ? "border-terracotta shadow-md"
+                        : "border-transparent hover:border-ink/20"
                     }`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -261,14 +323,44 @@ export default function ListingDetailPage() {
                 ))}
               </div>
             )}
+
+            {/* Contact Section - Below Image */}
+            {listing.seller?.contacts && listing.seller.contacts.length > 0 && (
+              <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-lg">📬</span>
+                  <h2 className="font-display text-lg font-semibold text-ink">
+                    Contact Seller
+                  </h2>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {listing.seller.contacts.map((contact, i) => (
+                    <SellerContactLink
+                      key={`${contact.type}-${i}`}
+                      contact={contact}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
+          {/* Right Column - Listing Details */}
           <div>
-            <span className="inline-block rounded-full border border-border bg-white px-4 py-1.5 text-sm font-medium text-ink">
-              {conditionLabel(listing.condition)}
-            </span>
+            <div className="flex items-start justify-between gap-4">
+              <span className="inline-block rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-ink">
+                {conditionLabel(listing.condition)}
+              </span>
+              <button
+                onClick={handleShare}
+                className="rounded-full border border-border bg-white p-2.5 text-ink-soft hover:bg-cream-dim transition-colors"
+                aria-label="Share listing"
+              >
+                <Share2 size={18} />
+              </button>
+            </div>
 
-            <h1 className="mt-4 font-display text-4xl font-bold text-ink">
+            <h1 className="mt-4 font-display text-4xl font-bold text-ink leading-tight">
               {listing.title}
             </h1>
 
@@ -276,7 +368,7 @@ export default function ListingDetailPage() {
               ETB {formatPrice(listing.price)}
             </p>
 
-            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-ink-soft">
+            <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink-soft">
               <span className="flex items-center gap-1.5">
                 <MapPin size={16} /> {location}
               </span>
@@ -296,39 +388,27 @@ export default function ListingDetailPage() {
               {listing.description}
             </p>
 
-            {listing.seller?.contacts && listing.seller.contacts.length > 0 && (
-              <div className="mt-8 rounded-2xl bg-white p-6">
-                <h2 className="font-display text-lg font-semibold text-ink">
-                  Contact Seller
-                </h2>
-                <div className="mt-4 flex flex-col gap-3">
-                  {listing.seller.contacts.map((contact, i) => (
-                    <SellerContactLink
-                      key={`${contact.type}-${i}`}
-                      contact={contact}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="mt-4 flex gap-3">
+            <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 onClick={toggleSave}
                 disabled={saveBusy}
-                className="flex flex-1 items-center justify-center gap-2 rounded-full border border-border bg-white py-3 text-sm font-medium text-ink-soft hover:bg-cream-dim disabled:opacity-60"
+                className={`flex items-center justify-center gap-3 rounded-xl border-2 py-3.5 px-4 text-sm font-medium transition-all ${
+                  saved
+                    ? "border-terracotta bg-terracotta-tint text-terracotta"
+                    : "border-border bg-white text-ink-soft hover:border-ink/30 hover:bg-cream-dim"
+                } disabled:opacity-60`}
               >
                 <Heart
-                  size={16}
+                  size={18}
                   className={saved ? "fill-terracotta text-terracotta" : ""}
                 />
                 {saveBusy ? "Saving…" : saved ? "Saved" : "Save Listing"}
               </button>
               <button
                 onClick={() => setReportOpen(true)}
-                className="flex items-center justify-center gap-2 rounded-full border border-border bg-white px-6 py-3 text-sm font-medium text-ink-soft hover:bg-cream-dim"
+                className="flex items-center justify-center gap-3 rounded-xl border-2 border-border bg-white py-3.5 px-4 text-sm font-medium text-ink-soft hover:border-ink/30 hover:bg-cream-dim transition-all"
               >
-                <Flag size={16} /> Report
+                <Flag size={18} /> Report
               </button>
             </div>
 
@@ -337,20 +417,20 @@ export default function ListingDetailPage() {
                 onClick={() =>
                   myRating ? setEditingRating(myRating) : setRateModalOpen(true)
                 }
-                className="mt-3 w-full rounded-full border border-terracotta px-6 py-3 text-sm font-medium text-terracotta hover:bg-terracotta-tint"
+                className="mt-3 w-full rounded-xl border-2 border-terracotta bg-transparent py-3.5 px-6 text-sm font-semibold text-terracotta hover:bg-terracotta-tint transition-all"
               >
-                {myRating ? "Edit Your Review" : "Rate This Seller"}
+                {myRating ? "✎ Edit Your Review" : "★ Rate This Seller"}
               </button>
             )}
 
             {listing.seller && (
-              <div className="mt-6 rounded-2xl bg-white p-5">
+              <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
                 <h2 className="mb-4 font-display text-lg font-semibold text-ink">
                   About the Seller
                 </h2>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-terracotta-tint font-display font-bold text-terracotta">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-terracotta-tint font-display text-lg font-bold text-terracotta">
                       {listing.seller.fullName.charAt(0).toUpperCase()}
                     </span>
                     <div>
@@ -359,7 +439,7 @@ export default function ListingDetailPage() {
                           {listing.seller.fullName}
                         </span>
                         {listing.seller.isVerified && (
-                          <span className="flex items-center gap-1 rounded-full bg-sage-bg px-2 py-0.5 text-xs font-medium text-sage">
+                          <span className="flex items-center gap-1 rounded-full bg-sage-bg px-2.5 py-0.5 text-xs font-medium text-sage">
                             <BadgeCheck size={12} /> Verified
                           </span>
                         )}
@@ -398,7 +478,7 @@ export default function ListingDetailPage() {
                   <Link
                     key={item.id}
                     href={`/listings/${item.id}`}
-                    className="block overflow-hidden rounded-2xl bg-white"
+                    className="group block overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow"
                   >
                     <div className="relative aspect-square bg-cream-dim">
                       {thumb && (
@@ -406,13 +486,13 @@ export default function ListingDetailPage() {
                         <img
                           src={resolveMediaUrl(thumb.url)}
                           alt={item.title}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       )}
-                      <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-ink">
+                      <span className="absolute left-2 top-2 rounded-full bg-white/95 px-3 py-1 text-xs font-medium text-ink">
                         {conditionLabel(item.condition)}
                       </span>
-                      <span className="absolute right-2 top-2 rounded-full bg-black/60 px-2.5 py-1 font-mono-data text-xs text-white">
+                      <span className="absolute right-2 top-2 rounded-full bg-black/70 px-3 py-1 font-mono-data text-xs text-white">
                         {item.viewCount} views
                       </span>
                     </div>
