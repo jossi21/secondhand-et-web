@@ -1,554 +1,442 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import Head from "next/head";
-import Link from "next/link";
+import { useMemo, useState } from "react";
+import { useCategories } from "@/hooks/useCategories";
+import { useListings } from "@/hooks/useListings";
+import { BrowseSidebar } from "@/components/browse/BrowseSidebar";
+import { ListingCard } from "@/components/browse/ListingCard";
+import {
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  SlidersHorizontal,
+} from "lucide-react";
 
-// ─── Types ───────────────────────────────────────────────────────────────
-
-interface Product {
-  id: number;
-  title: string;
-  description: string;
-  price: number;
-  location: string;
-  date: string;
-  seller: string;
-  rating: number;
-  verified: boolean;
-  condition: Condition;
-  views: number;
-  image: string;
-  sold: boolean;
-}
-
-type Condition = "Any Condition" | "Brand New" | "Lightly Used" | "Fair Condition";
-
-interface Category {
-  name: string;
-  count: number;
-  icon: string;
-}
-
-// ─── Data ──────────────────────────────────────────────────────────────────
-
-const CATEGORIES: Category[] = [
-  { name: "All Categories", count: 764, icon: "" },
-  { name: "Electronics", count: 234, icon: "📱" },
-  { name: "Furniture", count: 118, icon: "🛋️" },
-  { name: "Vehicles", count: 89, icon: "🚗" },
-  { name: "Appliances", count: 76, icon: "🏠" },
-  { name: "Clothing", count: 192, icon: "👕" },
-  { name: "Books & Education", count: 55, icon: "📚" },
-];
-
-const PRODUCTS: Product[] = [
-  {
-    id: 1,
-    title: "Sony WH-1000XM5 Headphones — Brand New",
-    description: "Purchased as a gift, never used. Still in original packaging with warranty.",
-    price: 9800,
-    location: "Addis Ababa, Bole",
-    date: "4 days ago",
-    seller: "Abel Tesfaye",
-    rating: 4.8,
-    verified: true,
-    condition: "Brand New",
-    views: 177,
-    image: "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=600&h=450&fit=crop",
-    sold: false,
-  },
-  {
-    id: 2,
-    title: "iPhone 12 Pro — 128GB, Midnight Blue",
-    description: "Bought in Dubai last year, barely used. No scratches, battery health 96%.",
-    price: 38000,
-    location: "Addis Ababa, Bole",
-    date: "5 days ago",
-    seller: "Abel Tesfaye",
-    rating: 4.8,
-    verified: true,
-    condition: "Lightly Used",
-    views: 212,
-    image: "https://images.unsplash.com/photo-1605236453806-6ff36851218e?w=600&h=450&fit=crop",
-    sold: false,
-  },
-  {
-    id: 3,
-    title: "Dell Latitude 7420 Laptop — i7, 16GB RAM",
-    description: "Corporate laptop, retired from office use. Excellent condition, 512GB SSD.",
-    price: 42000,
-    location: "Addis Ababa, Kazanchis",
-    date: "6 days ago",
-    seller: "Selamawit Girma",
-    rating: 4.6,
-    verified: true,
-    condition: "Lightly Used",
-    views: 348,
-    image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&h=450&fit=crop",
-    sold: false,
-  },
-  {
-    id: 4,
-    title: "L-Shaped Sofa — Dark Brown Leather",
-    description: "3+2 seater L-shaped sofa in genuine Italian leather. Perfect for family living room.",
-    price: 18500,
-    location: "Addis Ababa, Sarbet",
-    date: "5 days ago",
-    seller: "Yohannes Bekele",
-    rating: 4.3,
-    verified: false,
-    condition: "Fair Condition",
-    views: 91,
-    image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&h=450&fit=crop",
-    sold: false,
-  },
-  {
-    id: 5,
-    title: "Samsung 450L Refrigerator — Double Door",
-    description: "Purchased 2 years ago, working perfectly. Frost-free, energy efficient inverter compressor.",
-    price: 14500,
-    location: "Hawassa, Piazza",
-    date: "6 days ago",
-    seller: "Tigist Alemu",
-    rating: 4.9,
-    verified: true,
-    condition: "Lightly Used",
-    views: 55,
-    image: "https://images.unsplash.com/photo-1571175443880-49e1d58b794a?w=600&h=450&fit=crop",
-    sold: false,
-  },
-  {
-    id: 6,
-    title: "Toyota Corolla 2018 — 1.6L, Manual",
-    description: "Full insurance, annual inspection done. Single owner, well maintained service history.",
-    price: 1250000,
-    location: "Addis Ababa, Megenagna",
-    date: "Aug 10, 2026",
-    seller: "Dawit Haile",
-    rating: 5.0,
-    verified: true,
-    condition: "Lightly Used",
-    views: 682,
-    image: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&h=450&fit=crop",
-    sold: false,
-  },
-  {
-    id: 7,
-    title: "Bajaj Boxer 150cc Motorcycle — 2022",
-    description: "2022 model, only 8,000 km driven. All original parts, recently serviced.",
-    price: 95000,
-    location: "Adama, Kebele 03",
-    date: "1 week ago",
-    seller: "Kidus Girma",
-    rating: 4.7,
-    verified: true,
-    condition: "Lightly Used",
-    views: 289,
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=450&fit=crop",
-    sold: false,
-  },
-];
-
-const CONDITIONS: Condition[] = [
-  "Any Condition",
-  "Brand New",
-  "Lightly Used",
-  "Fair Condition",
-];
-
-const CITIES = ["Any City", "Addis Ababa", "Hawassa", "Adama", "Dire Dawa"];
-
-// ─── Helpers ───────────────────────────────────────────────────────────────
-
-function formatPrice(price: number): string {
-  return price.toLocaleString("en-US");
-}
-
-// ─── Components ────────────────────────────────────────────────────────────
-
-interface SidebarProps {
-  activeCategory: string;
-  onCategoryChange: (c: string) => void;
-  activeCondition: Condition;
-  onConditionChange: (c: Condition) => void;
-  activeCity: string;
-  onCityChange: (c: string) => void;
-  showSold: boolean;
-  onToggleSold: (v: boolean) => void;
-}
-
-function Sidebar({
-  activeCategory,
-  onCategoryChange,
-  activeCondition,
-  onConditionChange,
-  activeCity,
-  onCityChange,
-  showSold,
-  onToggleSold,
-}: SidebarProps) {
-  return (
-    <aside className="w-64 flex-shrink-0 hidden lg:block">
-      <h2 className="text-lg font-bold text-gray-900 mb-4">Filters</h2>
-
-      {/* Category Filter */}
-      <div className="mb-6">
-        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
-          Category
-        </h3>
-        <div className="space-y-1">
-          {CATEGORIES.map((cat) => {
-            const isActive = activeCategory === cat.name;
-            return (
-              <button
-                key={cat.name}
-                onClick={() => onCategoryChange(cat.name)}
-                className={`
-                  w-full flex items-center justify-between text-left px-4 py-2.5 font-medium transition-all rounded-lg
-                  ${isActive ? "bg-orange-700 text-white" : "text-gray-900 hover:bg-white"}
-                `}
-              >
-                <span className="flex items-center gap-2">
-                  {cat.icon && <span className="text-sm">{cat.icon}</span>}
-                  {cat.name}
-                </span>
-                {!isActive && (
-                  <span className="text-gray-400 text-sm">{cat.count}</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* City Filter */}
-      <div className="mb-6">
-        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
-          City
-        </h3>
-        <div className="relative">
-          <select
-            value={activeCity}
-            onChange={(e) => onCityChange(e.target.value)}
-            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 font-medium appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-700/20 focus:border-orange-700"
-          >
-            {CITIES.map((city) => (
-              <option key={city} value={city}>
-                {city}
-              </option>
-            ))}
-          </select>
-          <svg
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </div>
-
-      {/* Condition Filter */}
-      <div className="mb-6">
-        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
-          Condition
-        </h3>
-        <div className="space-y-1">
-          {CONDITIONS.map((condition) => {
-            const isActive = activeCondition === condition;
-            return (
-              <button
-                key={condition}
-                onClick={() => onConditionChange(condition)}
-                className={`
-                  w-full text-left px-4 py-2.5 font-medium transition-all rounded-lg
-                  ${isActive ? "bg-orange-700 text-white" : "text-gray-900 hover:bg-white"}
-                `}
-              >
-                {condition}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Price Range */}
-      <div className="mb-6">
-        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
-          Price Range (ETB)
-        </h3>
-        <div className="flex gap-3">
-          <input
-            type="number"
-            placeholder="Min"
-            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-700/20 focus:border-orange-700 transition-all"
-          />
-          <input
-            type="number"
-            placeholder="Max"
-            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-700/20 focus:border-orange-700 transition-all"
-          />
-        </div>
-      </div>
-
-      {/* Show Sold Items */}
-      <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
-          id="soldItems"
-          checked={showSold}
-          onChange={(e) => onToggleSold(e.target.checked)}
-          className="w-4 h-4 text-orange-700 border-gray-300 rounded focus:ring-orange-700 cursor-pointer"
-        />
-        <label
-          htmlFor="soldItems"
-          className="text-gray-900 font-medium cursor-pointer select-none"
-        >
-          Show sold items
-        </label>
-      </div>
-    </aside>
-  );
-}
-
-interface ProductCardProps {
-  product: Product;
-}
-
-function ProductCard({ product }: ProductCardProps) {
-  return (
-    <article className="bg-white rounded-2xl overflow-hidden group cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg shadow-sm">
-      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-        <img
-          src={product.image}
-          alt={product.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-        />
-
-        <div className="absolute top-3 left-3">
-          <span className="inline-block px-3 py-1 bg-white/90 backdrop-blur-sm text-gray-900 text-xs font-semibold rounded-full shadow-sm">
-            {product.condition}
-          </span>
-        </div>
-
-        <div className="absolute top-3 right-3">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-900/70 backdrop-blur-sm text-white text-xs font-medium rounded-full">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-3 h-3"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            {product.views} views
-          </span>
-        </div>
-      </div>
-
-      <div className="p-5">
-        <h3 className="font-bold text-gray-900 text-base leading-snug mb-1.5 group-hover:text-orange-700 transition-colors">
-          {product.title}
-        </h3>
-        <p className="text-gray-500 text-sm line-clamp-2 mb-4 leading-relaxed">
-          {product.description}
-        </p>
-
-        <div className="flex items-end justify-between mb-4">
-          <div>
-            <span className="text-xs text-orange-700 font-semibold uppercase tracking-wide">
-              ETB
-            </span>
-            <span className="text-orange-700 text-xl font-bold tabular-nums ml-1">
-              {formatPrice(product.price)}
-            </span>
-          </div>
-          <div className="text-right">
-            <p className="text-gray-500 text-xs">{product.location}</p>
-            <p className="text-gray-400 text-xs mt-0.5">{product.date}</p>
-          </div>
-        </div>
-
-        <div className="border-t border-gray-100 pt-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-gray-500 text-sm font-medium">
-                {product.seller}
-              </span>
-              {product.verified && (
-                <span className="text-emerald-500" title="Verified Seller">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              <span className="text-gray-500 text-sm font-semibold">{product.rating}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-// ─── Main Page ─────────────────────────────────────────────────────────────
+type SortOption = "Newest First" | "Price: Low to High" | "Price: High to Low";
 
 export default function BrowsePage() {
-  const [activeCategory, setActiveCategory] = useState("All Categories");
-  const [activeCondition, setActiveCondition] = useState<Condition>("Any Condition");
-  const [activeCity, setActiveCity] = useState("Any City");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("Newest First");
+  const { categories } = useCategories();
+
+  const [searchInput, setSearchInput] = useState("");
+  const [activeCategoryId, setActiveCategoryId] = useState("");
+  const [activeCondition, setActiveCondition] = useState("");
+  const [activeCity, setActiveCity] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("Newest First");
   const [showSold, setShowSold] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const filteredProducts = useMemo(() => {
-    let pool = [...PRODUCTS];
+  const filters = useMemo(
+    () => ({
+      q: searchInput.trim() || undefined,
+      categoryId: activeCategoryId || undefined,
+      city: activeCity || undefined,
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      page: 1,
+      limit: 24,
+    }),
+    [searchInput, activeCategoryId, activeCity, minPrice, maxPrice],
+  );
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      pool = pool.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q)
-      );
-    }
+  const { listings, total, isLoading } = useListings(filters);
 
-    if (activeCategory !== "All Categories") {
-      const categoryKeywords: Record<string, string[]> = {
-        Electronics: ["headphones", "iphone", "laptop", "samsung"],
-        Furniture: ["sofa", "table"],
-        Vehicles: ["toyota", "motorcycle", "bajaj"],
-        Appliances: ["refrigerator"],
-        Clothing: [],
-        "Books & Education": [],
-      };
-      const keywords = categoryKeywords[activeCategory] || [];
-      if (keywords.length > 0) {
-        pool = pool.filter((p) =>
-          keywords.some((kw) => p.title.toLowerCase().includes(kw))
-        );
-      }
-    }
+  const displayedListings = useMemo(() => {
+    let pool = activeCondition
+      ? listings.filter((l) => l.condition === activeCondition)
+      : listings;
 
-    if (activeCondition !== "Any Condition") {
-      pool = pool.filter((p) => p.condition === activeCondition);
-    }
-
-    if (activeCity !== "Any City") {
-      pool = pool.filter((p) => p.location.includes(activeCity));
-    }
-
-    if (sortBy === "Newest First") {
-      // Already in order
-    } else if (sortBy === "Price: Low to High") {
+    pool = [...pool];
+    if (sortBy === "Price: Low to High") {
       pool.sort((a, b) => a.price - b.price);
     } else if (sortBy === "Price: High to Low") {
       pool.sort((a, b) => b.price - a.price);
     }
-
     return pool;
-  }, [activeCategory, activeCondition, activeCity, searchQuery, sortBy]);
+  }, [listings, activeCondition, sortBy]);
+
+  const hasActiveFilters =
+    activeCategoryId ||
+    activeCondition ||
+    activeCity ||
+    minPrice ||
+    maxPrice ||
+    showSold;
+
+  const activeFilterCount = [
+    activeCategoryId,
+    activeCondition,
+    activeCity,
+    minPrice || maxPrice ? true : false,
+    showSold,
+  ].filter(Boolean).length;
+
+  const removeFilter = (type: string) => {
+    switch (type) {
+      case "category":
+        setActiveCategoryId("");
+        break;
+      case "condition":
+        setActiveCondition("");
+        break;
+      case "city":
+        setActiveCity("");
+        break;
+      case "price":
+        setMinPrice("");
+        setMaxPrice("");
+        break;
+      case "sold":
+        setShowSold(false);
+        break;
+    }
+  };
+
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   return (
-    <>
-      <Head>
-        <title>SecondHand ET — Browse</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+    <div className="min-h-screen bg-[#F5F5F0] font-sans text-gray-900">
+      {/* Header */}
+      <div className="border-b border-gray-100 bg-white sticky top-0 z-20 shadow-sm">
+        <div className="mx-auto max-w-[1400px] px-4 py-3">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              {/* Mobile Filter Button */}
+              <button
+                onClick={toggleSidebar}
+                className="lg:hidden relative flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-all hover:border-orange-300 shrink-0"
+                aria-label="Toggle filters"
+              >
+                <SlidersHorizontal className="w-5 h-5 text-gray-600" />
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
 
-      <div className="min-h-screen bg-[#F5F5F0] text-gray-900 font-sans">
-        {/* Search Bar */}
-        <div className="bg-white border-b border-gray-100">
-          <div className="max-w-[1400px] mx-auto px-6 py-4">
-            <div className="flex gap-3 max-w-3xl">
-              <input
-                type="text"
-                placeholder="Search listings..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 px-5 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-700/20 focus:border-orange-700 transition-all"
-              />
-              <button className="px-8 py-3 bg-orange-700 hover:bg-orange-800 text-white font-semibold rounded-xl transition-colors shadow-sm">
-                Search
+              <div className="flex-1 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Search listings..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-700/20"
+                />
+                <button className="rounded-lg bg-orange-700 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-orange-800 whitespace-nowrap">
+                  Search
+                </button>
+              </div>
+
+              {/* Desktop Filter Button */}
+              <button
+                onClick={toggleSidebar}
+                className="hidden lg:flex relative items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-all hover:border-orange-300 shrink-0"
+                aria-label="Toggle filters"
+              >
+                <SlidersHorizontal className="w-5 h-5 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700 hidden sm:inline">
+                  Filters
+                </span>
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
+                    {activeFilterCount}
+                  </span>
+                )}
               </button>
             </div>
+
+            {/* Active filters tags */}
+            {hasActiveFilters && (
+              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                <span className="text-xs text-gray-500 font-medium mr-1">
+                  Filters:
+                </span>
+                {activeCategoryId && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-orange-50 text-orange-700 text-xs font-medium rounded-full border border-orange-200">
+                    {categories.find((c) => c.id === activeCategoryId)?.name}
+                    <button
+                      onClick={() => removeFilter("category")}
+                      className="hover:bg-orange-200 rounded-full w-3.5 h-3.5 flex items-center justify-center text-orange-500 hover:text-orange-700 transition-colors"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {activeCondition && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-orange-50 text-orange-700 text-xs font-medium rounded-full border border-orange-200">
+                    {activeCondition}
+                    <button
+                      onClick={() => removeFilter("condition")}
+                      className="hover:bg-orange-200 rounded-full w-3.5 h-3.5 flex items-center justify-center text-orange-500 hover:text-orange-700 transition-colors"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {activeCity && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-orange-50 text-orange-700 text-xs font-medium rounded-full border border-orange-200">
+                    📍 {activeCity}
+                    <button
+                      onClick={() => removeFilter("city")}
+                      className="hover:bg-orange-200 rounded-full w-3.5 h-3.5 flex items-center justify-center text-orange-500 hover:text-orange-700 transition-colors"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {(minPrice || maxPrice) && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-orange-50 text-orange-700 text-xs font-medium rounded-full border border-orange-200">
+                    {minPrice || "0"} - {maxPrice || "∞"}
+                    <button
+                      onClick={() => removeFilter("price")}
+                      className="hover:bg-orange-200 rounded-full w-3.5 h-3.5 flex items-center justify-center text-orange-500 hover:text-orange-700 transition-colors"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {showSold && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-orange-50 text-orange-700 text-xs font-medium rounded-full border border-orange-200">
+                    Sold
+                    <button
+                      onClick={() => removeFilter("sold")}
+                      className="hover:bg-orange-200 rounded-full w-3.5 h-3.5 flex items-center justify-center text-orange-500 hover:text-orange-700 transition-colors"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    setActiveCategoryId("");
+                    setActiveCondition("");
+                    setActiveCity("");
+                    setMinPrice("");
+                    setMaxPrice("");
+                    setShowSold(false);
+                  }}
+                  className="text-xs text-gray-400 hover:text-gray-600 transition-colors ml-1"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
           </div>
         </div>
+      </div>
 
-        <main className="max-w-[1400px] mx-auto px-6 py-8">
-          <div className="flex gap-8">
-            <Sidebar
-              activeCategory={activeCategory}
-              onCategoryChange={setActiveCategory}
-              activeCondition={activeCondition}
-              onConditionChange={setActiveCondition}
-              activeCity={activeCity}
-              onCityChange={setActiveCity}
-              showSold={showSold}
-              onToggleSold={setShowSold}
-            />
-
-            {/* Mobile Filter Toggle */}
-            <div className="lg:hidden w-full mb-4">
-              <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 font-medium">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-                Filters
-              </button>
-            </div>
-
-            {/* Results Area */}
-            <div className="flex-1">
-              {/* Results Header */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {filteredProducts.length} listings found
-                </h2>
-                <div className="relative">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="appearance-none bg-white border border-gray-200 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-700/20 focus:border-orange-700"
-                  >
-                    <option>Newest First</option>
-                    <option>Price: Low to High</option>
-                    <option>Price: High to Low</option>
-                  </select>
-                  <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+      {/* Main content */}
+      <main className="ml-0 mr-4 max-w-[1400px] pr-4 pb-6">
+        <div className="flex gap-6 relative">
+          {/* Sidebar - Desktop only */}
+          <div
+            className={`
+              hidden lg:block
+              ${isSidebarOpen ? "w-72" : "w-20"}
+              shrink-0
+              transition-all duration-300 ease-in-out
+              h-screen sticky top-0
+            `}
+          >
+            {/* Sidebar content */}
+            <div
+              className={`h-full overflow-hidden bg-white border-r border-gray-100 ${isSidebarOpen ? "w-72" : "w-20"}`}
+            >
+              {/* Desktop header */}
+              <div
+                className={`flex items-center ${isSidebarOpen ? "justify-between p-4" : "justify-center p-2"} border-b border-gray-100 bg-gray-50/50`}
+              >
+                {isSidebarOpen ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Filter className="w-4 h-4 text-gray-500" />
+                      <h3 className="font-semibold text-gray-900 text-sm">
+                        Filters
+                      </h3>
+                      {hasActiveFilters && (
+                        <span className="bg-orange-100 text-orange-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                          {activeFilterCount}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {hasActiveFilters && (
+                        <button
+                          onClick={() => {
+                            setActiveCategoryId("");
+                            setActiveCondition("");
+                            setActiveCity("");
+                            setMinPrice("");
+                            setMaxPrice("");
+                            setShowSold(false);
+                          }}
+                          className="text-xs text-gray-400 hover:text-gray-600 transition-colors px-2 py-1 rounded hover:bg-gray-100"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                      <button
+                        onClick={toggleSidebar}
+                        className="rounded-lg p-1 hover:bg-gray-100 transition-colors"
+                        aria-label="Collapse filters"
+                      >
+                        <ChevronLeft className="h-5 w-5 text-gray-500" />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={toggleSidebar}
+                      className="rounded-lg p-1 hover:bg-gray-100 transition-colors"
+                      aria-label="Expand filters"
+                      title="Expand filters"
+                    >
+                      <ChevronRight className="h-5 w-5 text-gray-500" />
+                    </button>
+                    {hasActiveFilters && (
+                      <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </>
+                )}
               </div>
 
-              {/* Product Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-
-              {filteredProducts.length === 0 && (
-                <div className="text-center py-20">
-                  <p className="text-gray-400 text-lg">No items found.</p>
-                </div>
-              )}
+              <BrowseSidebar
+                categories={categories}
+                activeCategoryId={activeCategoryId}
+                onCategoryChange={setActiveCategoryId}
+                activeCondition={activeCondition}
+                onConditionChange={setActiveCondition}
+                activeCity={activeCity}
+                onCityChange={setActiveCity}
+                minPrice={minPrice}
+                maxPrice={maxPrice}
+                onMinPriceChange={setMinPrice}
+                onMaxPriceChange={setMaxPrice}
+                showSold={showSold}
+                onToggleSold={setShowSold}
+                isCollapsed={!isSidebarOpen}
+              />
             </div>
           </div>
-        </main>
-      </div>
-    </>
+
+          {/* Mobile Sidebar - Slide in */}
+          <div
+            className={`
+              fixed lg:hidden inset-y-0 left-0 z-50
+              w-80
+              transform transition-transform duration-300 ease-in-out
+              ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+              h-screen
+            `}
+          >
+            {/* Backdrop */}
+            {isSidebarOpen && (
+              <div
+                className="fixed inset-0 bg-black/30 z-40"
+                onClick={() => setIsSidebarOpen(false)}
+              />
+            )}
+
+            {/* Sidebar content */}
+            <div className="relative z-50 h-full overflow-y-auto bg-white shadow-xl">
+              {/* Mobile header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-white sticky top-0 z-10">
+                <h3 className="font-semibold text-gray-900">Filters</h3>
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <BrowseSidebar
+                categories={categories}
+                activeCategoryId={activeCategoryId}
+                onCategoryChange={setActiveCategoryId}
+                activeCondition={activeCondition}
+                onConditionChange={setActiveCondition}
+                activeCity={activeCity}
+                onCityChange={setActiveCity}
+                minPrice={minPrice}
+                maxPrice={maxPrice}
+                onMinPriceChange={setMinPrice}
+                onMaxPriceChange={setMaxPrice}
+                showSold={showSold}
+                onToggleSold={setShowSold}
+                isCollapsed={false}
+              />
+            </div>
+          </div>
+
+          {/* Results */}
+          <div
+            className={`flex-1 pt-5 min-w-0 transition-all duration-300 ease-in-out`}
+          >
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-sm font-medium text-gray-600">
+                {isLoading ? (
+                  "Loading…"
+                ) : (
+                  <span>
+                    <span className="font-semibold text-gray-900">{total}</span>{" "}
+                    listings found
+                  </span>
+                )}
+              </h2>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 hidden sm:inline">
+                  Sort by:
+                </span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  className="cursor-pointer appearance-none rounded-lg border border-gray-200 bg-white px-3 py-1.5 pr-8 text-sm font-medium text-gray-700 focus:border-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-700/20"
+                >
+                  <option>Newest First</option>
+                  <option>Price: Low to High</option>
+                  <option>Price: High to Low</option>
+                </select>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="py-20 text-center text-gray-400">Loading…</div>
+            ) : displayedListings.length === 0 ? (
+              <div className="py-20 text-center">
+                <div className="text-4xl mb-3">🔍</div>
+                <p className="text-lg font-medium text-gray-600">
+                  No items found
+                </p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Try adjusting your filters or search terms
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {displayedListings.map((listing) => (
+                    <ListingCard key={listing.id} listing={listing} />
+                  ))}
+                </div>
+                {displayedListings.length < total && (
+                  <div className="mt-8 text-center">
+                    <button className="px-6 py-2 text-sm font-medium text-orange-700 hover:text-orange-800 transition-colors">
+                      Load more
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }
