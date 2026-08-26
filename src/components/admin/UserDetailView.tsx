@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { ApiError } from "@/lib/api";
 import { UpdateUserCommand } from "@/lib/types";
 import { useAdminUsers } from "@/hooks/useAdminUsers";
 import { EditUserCard } from "@/components/admin/EditUserCard";
 import { DeleteDialog } from "@/components/ui/DeleteDialog";
 import { useToast } from "@/components/ui/Toast";
+import { resolveMediaUrl } from "@/lib/media";
 
 export function UserDetailView({ role }: { role: "buyer" | "seller" }) {
   const { id } = useParams<{ id: string }>();
@@ -111,6 +113,39 @@ export function UserDetailView({ role }: { role: "buyer" | "seller" }) {
             <p className="truncate font-mono text-xs text-ink">{user.id}</p>
           </div>
         </div>
+
+        {role === "seller" && user.nationalIdRef && (
+          <div className="mt-6 border-t border-border pt-6">
+            <h2 className="mb-3 font-mono-data text-xs uppercase tracking-wide text-ink-soft">
+              National ID Submission
+            </h2>
+            <p className="text-sm text-ink">
+              <span className="text-ink-soft">ID Number: </span>
+              {user.nationalIdRef}
+            </p>
+            {user.nationalIdPhotoUrl && (
+              <div className="relative mt-3 h-48 w-full max-w-sm overflow-hidden rounded-lg border border-border">
+                <Image
+                  src={resolveMediaUrl(user.nationalIdPhotoUrl)}
+                  alt="National ID submission"
+                  fill
+                  unoptimized
+                  sizes="400px"
+                  className="object-cover"
+                />
+              </div>
+            )}
+            {!user.isVerified && (
+              <button
+                onClick={() => handleSaveEdit(user.id, { isVerified: true })}
+                disabled={busyId === user.id}
+                className="mt-3 rounded-full bg-sage px-4 py-2 text-sm font-semibold text-white hover:bg-sage/90 disabled:opacity-60"
+              >
+                Approve Verification
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="mt-6 flex gap-2">
           <button

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, ChevronLeft, ChevronRight } from "lucide-react";
 import { ApiError } from "@/lib/api";
 import { CategoryResponse } from "@/lib/types";
 import { Dropdown } from "@/components/ui/Dropdown";
@@ -15,10 +15,26 @@ export function CategoryManagementTable({
   categories,
   isLoading,
   reload,
+  totalItems = 0,
+  currentPage = 1,
+  totalPages = 1,
+  itemsPerPage = 10,
+  onPageChange,
+  onItemsPerPageChange,
+  startIndex = 0,
+  endIndex = 0,
 }: {
   categories: CategoryResponse[];
   isLoading: boolean;
   reload: () => Promise<void>;
+  totalItems?: number;
+  currentPage?: number;
+  totalPages?: number;
+  itemsPerPage?: number;
+  onPageChange?: (page: number) => void;
+  onItemsPerPageChange?: (value: number) => void;
+  startIndex?: number;
+  endIndex?: number;
 }) {
   const [editTarget, setEditTarget] = useState<CategoryResponse | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CategoryResponse | null>(
@@ -57,7 +73,7 @@ export function CategoryManagementTable({
     return (
       <div className="rounded-2xl border border-border bg-white">
         <p className="px-6 py-8 text-center text-ink-soft">
-          No categories yet.
+          No categories found.
         </p>
       </div>
     );
@@ -139,6 +155,78 @@ export function CategoryManagementTable({
             })}
           </tbody>
         </table>
+
+        {/* Pagination */}
+        {totalPages > 1 && onPageChange && (
+          <div className="flex items-center justify-between border-t border-border px-6 py-4">
+            <div className="flex items-center gap-2 text-sm text-ink-soft">
+              <span>
+                Showing {startIndex + 1}–{Math.min(endIndex, totalItems)} of{" "}
+                {totalItems}
+              </span>
+              {onItemsPerPageChange && (
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+                  className="rounded-lg border border-border bg-white px-2 py-1 text-sm text-ink outline-none focus:border-terracotta"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink-soft hover:bg-cream-dim hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => onPageChange(pageNum)}
+                      className={`min-w-[32px] rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                        currentPage === pageNum
+                          ? "bg-terracotta text-white"
+                          : "text-ink-soft hover:bg-cream-dim hover:text-ink"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink-soft hover:bg-cream-dim hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <EditCategoryCard

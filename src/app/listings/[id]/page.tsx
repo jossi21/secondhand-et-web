@@ -14,6 +14,7 @@ import {
   Share2,
   ChevronLeft,
   ChevronRight,
+  Star,
 } from "lucide-react";
 import { getListing, searchListings } from "@/lib/api/listings";
 import { getSellerRatings, deleteRating } from "@/lib/api/ratings";
@@ -184,7 +185,7 @@ export default function ListingDetailPage() {
     "Uncategorized";
 
   const myRating = ratingSummary?.ratings.find(
-    (r) => r.fromUserId === user?.id,
+    (r) => r.fromUserId === user?.id && r.listingId === listing.id,
   );
 
   async function handleShare() {
@@ -260,7 +261,7 @@ export default function ListingDetailPage() {
         </nav>
 
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
-          {/* Left Column - Image & Contact */}
+          {/* Left Column - Image, About Seller, Ratings */}
           <div>
             <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-white group">
               {images ? (
@@ -324,28 +325,53 @@ export default function ListingDetailPage() {
               </div>
             )}
 
-            {/* Contact Section - Below Image */}
-            {listing.seller?.contacts && listing.seller.contacts.length > 0 && (
-              <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-lg">📬</span>
-                  <h2 className="font-display text-lg font-semibold text-ink">
-                    Contact Seller
-                  </h2>
+            {/* About the Seller - No background */}
+            {listing.seller && (
+              <div className="mt-6">
+                <h2 className="mb-4 font-display text-lg font-semibold text-ink">
+                  About the Seller
+                </h2>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-terracotta-tint font-display text-lg font-bold text-terracotta">
+                      {listing.seller.fullName.charAt(0).toUpperCase()}
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-ink">
+                          {listing.seller.fullName}
+                        </span>
+                        {listing.seller.isVerified && (
+                          <span className="flex items-center gap-1 rounded-full bg-sage-bg px-2.5 py-0.5 text-xs font-medium text-sage">
+                            <BadgeCheck size={12} /> Verified
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-sm text-ink-soft">
+                        ★ {listing.seller.averageRating.toFixed(1)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  {listing.seller.contacts.map((contact, i) => (
-                    <SellerContactLink
-                      key={`${contact.type}-${i}`}
-                      contact={contact}
-                    />
-                  ))}
-                </div>
+              </div>
+            )}
+
+            {/* Ratings - No background */}
+            {ratingSummary && (
+              <div className="mt-6">
+                <SellerReviews
+                  average={ratingSummary.average}
+                  count={ratingSummary.count}
+                  ratings={ratingSummary.ratings}
+                  currentUserId={user?.id}
+                  onEditOwn={(r) => setEditingRating(r)}
+                  onDeleteOwn={(r) => setDeleteRatingTarget(r)}
+                />
               </div>
             )}
           </div>
 
-          {/* Right Column - Listing Details */}
+          {/* Right Column - Listing Details & Contact */}
           <div>
             <div className="flex items-start justify-between gap-4">
               <span className="inline-block rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-ink">
@@ -388,80 +414,72 @@ export default function ListingDetailPage() {
               {listing.description}
             </p>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
+            {/* Action Buttons - Save, Report, Rate in one row with colors */}
+            <div className="mt-6 flex flex-wrap gap-3">
+              {/* Save Button */}
               <button
                 onClick={toggleSave}
                 disabled={saveBusy}
-                className={`flex items-center justify-center gap-3 rounded-xl border-2 py-3.5 px-4 text-sm font-medium transition-all ${
+                className={`flex flex-1 items-center justify-center gap-2.5 rounded-xl border-2 py-3.5 px-4 text-sm font-medium transition-all min-w-[100px] ${
                   saved
-                    ? "border-terracotta bg-terracotta-tint text-terracotta"
-                    : "border-border bg-white text-ink-soft hover:border-ink/30 hover:bg-cream-dim"
+                    ? "border-rose-500 bg-rose-500 text-white hover:bg-rose-600 hover:border-rose-600"
+                    : "border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:border-rose-300"
                 } disabled:opacity-60`}
               >
                 <Heart
                   size={18}
-                  className={saved ? "fill-terracotta text-terracotta" : ""}
+                  className={saved ? "fill-white text-white" : ""}
                 />
-                {saveBusy ? "Saving…" : saved ? "Saved" : "Save Listing"}
+                {saveBusy ? "Saving…" : saved ? "Saved" : "Save"}
               </button>
+
+              {/* Report Button */}
               <button
                 onClick={() => setReportOpen(true)}
-                className="flex items-center justify-center gap-3 rounded-xl border-2 border-border bg-white py-3.5 px-4 text-sm font-medium text-ink-soft hover:border-ink/30 hover:bg-cream-dim transition-all"
+                className="flex flex-1 items-center justify-center gap-2.5 rounded-xl border-2 border-orange-200 bg-orange-50 py-3.5 px-4 text-sm font-medium text-orange-600 hover:bg-orange-100 hover:border-orange-300 transition-all min-w-[100px]"
               >
                 <Flag size={18} /> Report
               </button>
+
+              {/* Rate Button */}
+              {user?.role === "buyer" && (
+                <button
+                  onClick={() =>
+                    myRating
+                      ? setEditingRating(myRating)
+                      : setRateModalOpen(true)
+                  }
+                  className={`flex flex-1 items-center justify-center gap-2.5 rounded-xl border-2 py-3.5 px-4 text-sm font-medium transition-all min-w-[100px] ${
+                    myRating
+                      ? "border-amber-500 bg-amber-500 text-white hover:bg-amber-600 hover:border-amber-600"
+                      : "border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:border-amber-300"
+                  }`}
+                >
+                  <Star size={18} className={myRating ? "fill-white" : ""} />
+                  {myRating ? "Edit Review" : "Rate"}
+                </button>
+              )}
             </div>
 
-            {user?.role === "buyer" && (
-              <button
-                onClick={() =>
-                  myRating ? setEditingRating(myRating) : setRateModalOpen(true)
-                }
-                className="mt-3 w-full rounded-xl border-2 border-terracotta bg-transparent py-3.5 px-6 text-sm font-semibold text-terracotta hover:bg-terracotta-tint transition-all"
-              >
-                {myRating ? "✎ Edit Your Review" : "★ Rate This Seller"}
-              </button>
-            )}
-
-            {listing.seller && (
-              <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
-                <h2 className="mb-4 font-display text-lg font-semibold text-ink">
-                  About the Seller
-                </h2>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-terracotta-tint font-display text-lg font-bold text-terracotta">
-                      {listing.seller.fullName.charAt(0).toUpperCase()}
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-ink">
-                          {listing.seller.fullName}
-                        </span>
-                        {listing.seller.isVerified && (
-                          <span className="flex items-center gap-1 rounded-full bg-sage-bg px-2.5 py-0.5 text-xs font-medium text-sage">
-                            <BadgeCheck size={12} /> Verified
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-0.5 text-sm text-ink-soft">
-                        ★ {listing.seller.averageRating.toFixed(1)}
-                      </p>
-                    </div>
-                  </div>
+            {/* Contact Section - No background */}
+            {listing.seller?.contacts && listing.seller.contacts.length > 0 && (
+              <div className="mt-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-lg">📬</span>
+                  <h2 className="font-display text-lg font-semibold text-ink">
+                    Contact Seller
+                  </h2>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {listing.seller.contacts.map((contact, i) => (
+                    <SellerContactLink
+                      key={`${contact.type}-${i}`}
+                      contact={contact}
+                      variant="subtle"
+                    />
+                  ))}
                 </div>
               </div>
-            )}
-
-            {ratingSummary && (
-              <SellerReviews
-                average={ratingSummary.average}
-                count={ratingSummary.count}
-                ratings={ratingSummary.ratings}
-                currentUserId={user?.id}
-                onEditOwn={(r) => setEditingRating(r)}
-                onDeleteOwn={(r) => setDeleteRatingTarget(r)}
-              />
             )}
           </div>
         </div>
@@ -541,7 +559,7 @@ export default function ListingDetailPage() {
 
       {(rateModalOpen || editingRating) && (
         <RateSellerModal
-          sellerId={listing.sellerId}
+          listingId={listing.id}
           existing={editingRating}
           onClose={() => {
             setRateModalOpen(false);

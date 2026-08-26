@@ -14,7 +14,7 @@ export function getSellerRatings(sellerId: string, signal?: AbortSignal) {
 }
 
 export interface RatingInput {
-  toUserId: string;
+  listingId: string;
   score: number;
   comment?: string;
 }

@@ -13,6 +13,7 @@ import { Dropdown } from "@/components/ui/Dropdown";
 import { DeleteDialog } from "@/components/ui/DeleteDialog";
 import { useToast } from "@/components/ui/Toast";
 import { resolveMediaUrl } from "@/lib/media";
+import { VerifyIdentityCard } from "@/components/seller/VerifyIdentityCard";
 
 type SellerListing = SellerDashboardResponse["listings"][number];
 
@@ -199,6 +200,12 @@ function SellerDashboardContent() {
           label="Avg. Rating"
         />
       </div>
+
+      {!user?.isVerified && (
+        <div className="mb-6">
+          <VerifyIdentityCard />
+        </div>
+      )}
 
       <div className="mb-6 overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">

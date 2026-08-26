@@ -204,7 +204,7 @@ function SignInForm({ onSwitch }: { onSwitch: () => void }) {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [role, setRole] = useState<"buyer" | "seller" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -213,7 +213,10 @@ function SignInForm({ onSwitch }: { onSwitch: () => void }) {
     setError(null);
     setSubmitting(true);
     try {
-      await login({ email, password, ...(role ? { role } : {}) });
+      // No buyer/seller selection means this is an admin login attempt —
+      // send role explicitly as "admin" instead of omitting it, so a
+      // buyer/seller account can't slip through by leaving it blank.
+      await login({ email, password, role: role ?? "admin" });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong");
     } finally {
@@ -245,11 +248,11 @@ function SignInForm({ onSwitch }: { onSwitch: () => void }) {
       </div>
 
       <div>
-        <FieldLabel>Sign in as (optional)</FieldLabel>
+        <FieldLabel>Sign in as</FieldLabel>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { value: "buyer" as UserRole, label: "Buyer" },
-            { value: "seller" as UserRole, label: "Seller" },
+            { value: "buyer" as const, label: "Buyer" },
+            { value: "seller" as const, label: "Seller" },
           ].map((opt) => (
             <button
               key={opt.value}
@@ -267,10 +270,13 @@ function SignInForm({ onSwitch }: { onSwitch: () => void }) {
             </button>
           ))}
         </div>
+        <p className="mt-1 text-xs text-ink-soft">
+          Leave unselected to sign in as an administrator.
+        </p>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+        <div className="">
           <p className="text-sm text-red-600">{error}</p>
         </div>
       )}
