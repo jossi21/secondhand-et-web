@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MoreVertical, Search, X } from "lucide-react";
+import { MoreVertical, Search, X, Filter } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import {
   searchListings,
@@ -24,11 +24,8 @@ const TABS: { value: StatusTab; label: string }[] = [
   { value: "removed", label: "Removed" },
 ];
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 400;
-
-const inputClass =
-  "rounded-lg border border-border bg-cream-dim px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-soft/70 focus:border-terracotta";
 
 function statusBadgeClass(status: string): string {
   switch (status) {
@@ -47,106 +44,21 @@ function formatPrice(price: number): string {
   return price.toLocaleString("en-US");
 }
 
-// Extracted filter/search component
-function ListingFilters({
-  searchInput,
-  setSearchInput,
-  categoryId,
-  setCategoryId,
-  city,
-  setCity,
-  minPrice,
-  setMinPrice,
-  maxPrice,
-  setMaxPrice,
-  hasActiveFilters,
-  clearFilters,
-  categories,
-}: {
-  searchInput: string;
-  setSearchInput: (value: string) => void;
-  categoryId: string;
-  setCategoryId: (value: string) => void;
-  city: string;
-  setCity: (value: string) => void;
-  minPrice: string;
-  setMinPrice: (value: string) => void;
-  maxPrice: string;
-  setMaxPrice: (value: string) => void;
-  hasActiveFilters: boolean;
-  clearFilters: () => void;
-  categories: { id: string; name: string }[];
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-white p-4">
-      <div className="relative flex-1 min-w-[200px]">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
-        <input
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Search title or description…"
-          className={`${inputClass} w-full pl-9`}
-        />
-      </div>
+function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
-      <select
-        value={categoryId}
-        onChange={(e) => {
-          setCategoryId(e.target.value);
-          // Page reset is handled by parent
-        }}
-        className={inputClass}
-      >
-        <option value="">All categories</option>
-        {categories.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-          </option>
-        ))}
-      </select>
-
-      <input
-        value={city}
-        onChange={(e) => {
-          setCity(e.target.value);
-        }}
-        placeholder="City"
-        className={`${inputClass} w-28`}
-      />
-
-      <input
-        type="number"
-        min={0}
-        value={minPrice}
-        onChange={(e) => {
-          setMinPrice(e.target.value);
-        }}
-        placeholder="Min ETB"
-        className={`${inputClass} w-28`}
-      />
-
-      <input
-        type="number"
-        min={0}
-        value={maxPrice}
-        onChange={(e) => {
-          setMaxPrice(e.target.value);
-        }}
-        placeholder="Max ETB"
-        className={`${inputClass} w-28`}
-      />
-
-      {hasActiveFilters && (
-        <button
-          onClick={clearFilters}
-          className="flex items-center gap-1 rounded-full border border-border px-3 py-2 text-sm font-medium text-ink-soft hover:bg-cream-dim"
-        >
-          <X className="h-3.5 w-3.5" />
-          Clear
-        </button>
-      )}
-    </div>
+function timeAgo(dateString: string): string {
+  const diffDays = Math.floor(
+    (Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60 * 24),
   );
+  if (diffDays <= 0) return "Today";
+  if (diffDays === 1) return "1 day ago";
+  return `${diffDays} days ago`;
 }
 
 export function AdminListingsTable() {
@@ -160,6 +72,7 @@ export function AdminListingsTable() {
   const [deleteTarget, setDeleteTarget] = useState<ListingResponse | null>(
     null,
   );
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const [searchInput, setSearchInput] = useState("");
   const [q, setQ] = useState("");
@@ -172,14 +85,6 @@ export function AdminListingsTable() {
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toast = useToast();
-
-  // Reset page to 1 when any filter changes
-  const handleFilterChange = useCallback((setter: (value: any) => void) => {
-    return (value: any) => {
-      setter(value);
-      setPage(1);
-    };
-  }, []);
 
   // Debounce the free-text search box into `q`
   useEffect(() => {
@@ -249,6 +154,16 @@ export function AdminListingsTable() {
   }
 
   const hasActiveFilters = q || categoryId || city || minPrice || maxPrice;
+  const activeFilterCount = [q, categoryId, city, minPrice, maxPrice].filter(
+    Boolean,
+  ).length;
+
+  const handleFilterChange = (setter: (value: string) => void) => {
+    return (value: string) => {
+      setter(value);
+      setPage(1);
+    };
+  };
 
   async function handleQuickStatus(
     listing: ListingResponse,
@@ -280,78 +195,289 @@ export function AdminListingsTable() {
     }
   }
 
-  function menuItemsFor(listing: ListingResponse): DropdownItem[] {
-    const items: DropdownItem[] = [
-      {
-        label: "View",
-        onSelect: () => window.open(`/listings/${listing.id}`, "_blank"),
-      },
-      {
-        label: "Edit",
-        onSelect: () => setEditTarget(listing),
-      },
-    ];
+  const getMenuItemsFor = useCallback(
+    (listing: ListingResponse): DropdownItem[] => {
+      const items: DropdownItem[] = [
+        {
+          label: "View",
+          onSelect: () => window.open(`/listings/${listing.id}`, "_blank"),
+        },
+        {
+          label: "Edit",
+          onSelect: () => setEditTarget(listing),
+        },
+      ];
 
-    if (listing.status !== "active") {
-      items.push({
-        label: "Mark Active",
-        onSelect: () => handleQuickStatus(listing, "active"),
-      });
-    }
-    if (listing.status !== "sold") {
-      items.push({
-        label: "Mark Sold",
-        onSelect: () => handleQuickStatus(listing, "sold"),
-      });
-    }
-    if (listing.status !== "removed") {
-      items.push({
-        label: "Mark Removed",
-        onSelect: () => handleQuickStatus(listing, "removed"),
-      });
-    }
+      if (listing.status !== "active") {
+        items.push({
+          label: "Mark Active",
+          onSelect: () => handleQuickStatus(listing, "active"),
+        });
+      }
+      if (listing.status !== "sold") {
+        items.push({
+          label: "Mark Sold",
+          onSelect: () => handleQuickStatus(listing, "sold"),
+        });
+      }
+      if (listing.status !== "removed") {
+        items.push({
+          label: "Mark Removed",
+          onSelect: () => handleQuickStatus(listing, "removed"),
+        });
+      }
 
-    items.push({
-      label: "Delete",
-      variant: "danger",
-      onSelect: () => setDeleteTarget(listing),
-    });
+      items.push({
+        label: "Delete",
+        variant: "danger",
+        onSelect: () => setDeleteTarget(listing),
+      });
 
-    return items;
-  }
+      return items;
+    },
+    [],
+  );
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  const getPageNumbers = () => {
+    const pages: number[] = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else if (page <= 3) {
+      for (let i = 1; i <= maxVisible; i++) {
+        pages.push(i);
+      }
+    } else if (page >= totalPages - 2) {
+      for (let i = totalPages - maxVisible + 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      for (let i = page - 2; i <= page + 2; i++) {
+        pages.push(i);
+      }
+    }
+    return pages;
+  };
+
+  const filterLabel = (key: string, value: string) => {
+    const labels: Record<string, Record<string, string>> = {
+      category: categories.reduce((acc, c) => ({ ...acc, [c.id]: c.name }), {}),
+    };
+    return labels[key]?.[value] || value;
+  };
+
   return (
     <div className="space-y-4">
-      {/* Filters Section - Now outside the table */}
-      <ListingFilters
-        searchInput={searchInput}
-        setSearchInput={setSearchInput}
-        categoryId={categoryId}
-        setCategoryId={(value) => {
-          setCategoryId(value);
-          setPage(1);
-        }}
-        city={city}
-        setCity={(value) => {
-          setCity(value);
-          setPage(1);
-        }}
-        minPrice={minPrice}
-        setMinPrice={(value) => {
-          setMinPrice(value);
-          setPage(1);
-        }}
-        maxPrice={maxPrice}
-        setMaxPrice={(value) => {
-          setMaxPrice(value);
-          setPage(1);
-        }}
-        hasActiveFilters={hasActiveFilters}
-        clearFilters={clearFilters}
-        categories={categories}
-      />
+      {/* Search and Filter Bar - Like Buyer Management */}
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search
+              size={18}
+              className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${
+                isSearchFocused || searchInput
+                  ? "text-terracotta"
+                  : "text-ink-soft/60"
+              }`}
+            />
+            <input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+              placeholder="Search listings..."
+              className="w-full rounded-xl border border-border bg-white py-2.5 pl-10 pr-10 text-sm text-ink outline-none transition-all placeholder:text-ink-soft/60 focus:border-terracotta focus:ring-2 focus:ring-terracotta/10"
+            />
+            {searchInput && (
+              <button
+                onClick={() => setSearchInput("")}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-soft/60 hover:text-ink transition-colors"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* Category Filter */}
+          <div className="min-w-[140px]">
+            <select
+              value={categoryId}
+              onChange={(e) => {
+                setCategoryId(e.target.value);
+                setPage(1);
+              }}
+              className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-ink outline-none transition-all focus:border-terracotta focus:ring-2 focus:ring-terracotta/10"
+            >
+              <option value="">All Categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* City Filter */}
+          <div className="min-w-[130px]">
+            <input
+              value={city}
+              onChange={(e) => {
+                setCity(e.target.value);
+                setPage(1);
+              }}
+              placeholder="City"
+              className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-ink outline-none transition-all placeholder:text-ink-soft/60 focus:border-terracotta focus:ring-2 focus:ring-terracotta/10"
+            />
+          </div>
+
+          {/* Min Price */}
+          <div className="min-w-[110px]">
+            <input
+              type="number"
+              min={0}
+              value={minPrice}
+              onChange={(e) => {
+                setMinPrice(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Min ETB"
+              className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-ink outline-none transition-all placeholder:text-ink-soft/60 focus:border-terracotta focus:ring-2 focus:ring-terracotta/10"
+            />
+          </div>
+
+          {/* Max Price */}
+          <div className="min-w-[110px]">
+            <input
+              type="number"
+              min={0}
+              value={maxPrice}
+              onChange={(e) => {
+                setMaxPrice(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Max ETB"
+              className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-ink outline-none transition-all placeholder:text-ink-soft/60 focus:border-terracotta focus:ring-2 focus:ring-terracotta/10"
+            />
+          </div>
+
+          {/* Clear Filters Button */}
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1.5 rounded-xl border border-border bg-white px-3.5 py-2.5 text-sm text-ink-soft hover:border-ink/30 hover:bg-cream-dim transition-all whitespace-nowrap"
+            >
+              <X size={14} />
+              Clear {activeFilterCount}
+            </button>
+          )}
+        </div>
+
+        {/* Active Filter Tags */}
+        {hasActiveFilters && (
+          <div className="flex flex-wrap gap-2">
+            {q && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-terracotta-tint px-3 py-1 text-xs font-medium text-terracotta">
+                Search: "{q}"
+                <button
+                  onClick={() => {
+                    setSearchInput("");
+                    setQ("");
+                    setPage(1);
+                  }}
+                  className="hover:text-terracotta-dark"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {categoryId && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-terracotta-tint px-3 py-1 text-xs font-medium text-terracotta">
+                Category:{" "}
+                {categories.find((c) => c.id === categoryId)?.name ||
+                  categoryId}
+                <button
+                  onClick={() => {
+                    setCategoryId("");
+                    setPage(1);
+                  }}
+                  className="hover:text-terracotta-dark"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {city && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-terracotta-tint px-3 py-1 text-xs font-medium text-terracotta">
+                City: {city}
+                <button
+                  onClick={() => {
+                    setCity("");
+                    setPage(1);
+                  }}
+                  className="hover:text-terracotta-dark"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {minPrice && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-terracotta-tint px-3 py-1 text-xs font-medium text-terracotta">
+                Min: ETB {minPrice}
+                <button
+                  onClick={() => {
+                    setMinPrice("");
+                    setPage(1);
+                  }}
+                  className="hover:text-terracotta-dark"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {maxPrice && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-terracotta-tint px-3 py-1 text-xs font-medium text-terracotta">
+                Max: ETB {maxPrice}
+                <button
+                  onClick={() => {
+                    setMaxPrice("");
+                    setPage(1);
+                  }}
+                  className="hover:text-terracotta-dark"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Results count */}
+        <div className="flex items-center justify-between text-xs text-ink-soft">
+          <span>
+            Showing{" "}
+            <span className="font-medium text-ink">{listings.length}</span> of{" "}
+            <span className="font-medium text-ink">{total}</span> listings
+          </span>
+          {searchInput && (
+            <span>
+              Filtered by:{" "}
+              <span className="font-medium text-ink">"{searchInput}"</span>
+            </span>
+          )}
+          {tab !== "all" && (
+            <span>
+              Status:{" "}
+              <span className="font-medium text-ink capitalize">{tab}</span>
+            </span>
+          )}
+        </div>
+      </div>
 
       {/* Table Section */}
       <div className="rounded-2xl border border-border bg-white overflow-hidden">
@@ -369,9 +495,6 @@ export function AdminListingsTable() {
               {t.label}
             </button>
           ))}
-          <span className="ml-auto text-sm text-ink-soft">
-            {total} {total === 1 ? "listing" : "listings"}
-          </span>
         </div>
 
         {loading ? (
@@ -390,9 +513,17 @@ export function AdminListingsTable() {
             </button>
           </div>
         ) : listings.length === 0 ? (
-          <p className="px-6 py-12 text-center text-ink-soft">
-            No listings match these filters.
-          </p>
+          <div className="px-6 py-12 text-center">
+            <p className="text-ink-soft">No listings match these filters.</p>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="mt-2 text-sm text-terracotta hover:underline"
+              >
+                Clear all filters
+              </button>
+            )}
+          </div>
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -444,7 +575,12 @@ export function AdminListingsTable() {
                         </span>
                       </td>
                       <td className="px-6 py-3 text-ink-soft whitespace-nowrap">
-                        {new Date(listing.createdAt).toLocaleDateString()}
+                        <div>
+                          <div>{timeAgo(listing.createdAt)}</div>
+                          <div className="text-[10px] text-ink-soft/60">
+                            {formatDate(listing.createdAt)}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-3 text-right">
                         <div className="flex justify-end">
@@ -458,7 +594,7 @@ export function AdminListingsTable() {
                                 <MoreVertical className="h-4 w-4" />
                               </button>
                             }
-                            items={menuItemsFor(listing)}
+                            items={getMenuItemsFor(listing)}
                           />
                         </div>
                       </td>
@@ -468,52 +604,75 @@ export function AdminListingsTable() {
               </table>
             </div>
 
-            <div className="flex items-center justify-between border-t border-border px-6 py-3">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="rounded-full border border-border px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-cream-dim disabled:opacity-40"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-ink-soft">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="rounded-full border border-border px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-cream-dim disabled:opacity-40"
-              >
-                Next
-              </button>
+            {/* Pagination */}
+            <div className="flex items-center justify-between border-t border-border px-6 py-4">
+              <div className="flex items-center gap-2 text-sm text-ink-soft">
+                <span>
+                  Showing {(page - 1) * PAGE_SIZE + 1}–
+                  {Math.min(page * PAGE_SIZE, total)} of {total}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink-soft hover:bg-cream-dim hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {getPageNumbers().map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className={`min-w-[32px] rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                        page === pageNum
+                          ? "bg-terracotta text-white"
+                          : "text-ink-soft hover:bg-cream-dim hover:text-ink"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink-soft hover:bg-cream-dim hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </>
         )}
-
-        <EditListingCard
-          listing={editTarget}
-          onClose={() => setEditTarget(null)}
-          onSaved={() => load()}
-        />
-
-        <DeleteDialog
-          open={!!deleteTarget}
-          onClose={() => setDeleteTarget(null)}
-          onConfirm={handleConfirmDelete}
-          title="Delete this listing?"
-          itemName={deleteTarget?.title}
-          description={
-            deleteTarget && (
-              <>
-                <span className="font-medium">{deleteTarget.title}</span> will
-                be permanently removed from the system, including from this
-                admin view. This is different from marking it
-                &quot;Removed&quot;.
-              </>
-            )
-          }
-        />
       </div>
+
+      <EditListingCard
+        listing={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSaved={() => load()}
+      />
+
+      <DeleteDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete this listing?"
+        itemName={deleteTarget?.title}
+        description={
+          deleteTarget && (
+            <>
+              <span className="font-medium">{deleteTarget.title}</span> will be
+              permanently removed from the system, including from this admin
+              view. This is different from marking it &quot;Removed&quot;.
+            </>
+          )
+        }
+      />
     </div>
   );
 }

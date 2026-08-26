@@ -9,6 +9,8 @@ export interface UserInfo {
   phone: string;
   city: string | null;
   isVerified: boolean;
+  nationalIdRef?: string;
+  nationalIdPhotoUrl?: string;
   role: UserRole;
 }
 
@@ -53,6 +55,8 @@ export interface UserResponse {
   phone?: string;
   city?: string;
   isVerified: boolean;
+  nationalIdRef?: string;
+  nationalIdPhotoUrl?: string;
   role: UserRole;
   contacts?: UserContact[];
   createdAt: string;
@@ -99,6 +103,8 @@ export interface RatingResponse {
   fromUserName?: string;
   toUserId: string;
   toUserName?: string;
+  listingId?: string;
+  listingTitle?: string;
   createdAt: string;
 }
 

@@ -12,12 +12,12 @@ const inputClass =
   "w-full rounded-lg border border-border bg-cream-dim px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-soft/70 focus:border-terracotta";
 
 export function RateSellerModal({
-  sellerId,
+  listingId,
   existing,
   onClose,
   onSaved,
 }: {
-  sellerId: string;
+  listingId: string;
   existing?: RatingResponse | null;
   onClose: () => void;
   onSaved: (rating: RatingResponse) => void;
@@ -41,7 +41,7 @@ export function RateSellerModal({
             comment: comment.trim() || undefined,
           })
         : await createRating({
-            toUserId: sellerId,
+            listingId,
             score,
             comment: comment.trim() || undefined,
           });
