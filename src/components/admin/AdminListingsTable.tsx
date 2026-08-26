@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MoreVertical, Search, X, Filter } from "lucide-react";
-import { apiFetch, ApiError } from "@/lib/api";
+import { MoreVertical, Search, X } from "lucide-react";
+import { ApiError } from "@/lib/api";
 import {
   searchListings,
   updateListing,
@@ -24,7 +24,7 @@ const TABS: { value: StatusTab; label: string }[] = [
   { value: "removed", label: "Removed" },
 ];
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 6;
 const SEARCH_DEBOUNCE_MS = 400;
 
 function statusBadgeClass(status: string): string {

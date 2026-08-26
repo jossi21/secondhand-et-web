@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Search, X, Filter } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { SellerDashboardResponse } from "@/lib/types";
 import { RequireRole } from "@/components/auth/RequireRole";
@@ -16,6 +16,7 @@ import { resolveMediaUrl } from "@/lib/media";
 import { VerifyIdentityCard } from "@/components/seller/VerifyIdentityCard";
 
 type SellerListing = SellerDashboardResponse["listings"][number];
+type StatusFilter = "all" | "active" | "sold" | "removed";
 
 function StatCard({
   icon,
@@ -27,7 +28,7 @@ function StatCard({
   label: string;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-white p-5 shadow-sm">
+    <div className="flex flex-col gap-3 rounded-xl border border-border bg-white p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
       <span className="text-lg">{icon}</span>
       <div>
         <div className="font-mono-data text-2xl font-semibold text-ink">
@@ -57,6 +58,16 @@ function timeAgo(dateString: string): string {
   return `${diffDays} days ago`;
 }
 
+function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+const PAGE_SIZE = 7;
+
 function SellerDashboardContent() {
   const { user } = useAuth();
   const router = useRouter();
@@ -67,6 +78,12 @@ function SellerDashboardContent() {
   const [removeTarget, setRemoveTarget] = useState<SellerListing | null>(null);
   const { categories } = useCategories();
   const toast = useToast();
+
+  // Search, filter, and pagination state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const load = useCallback(async () => {
     try {
@@ -89,6 +106,55 @@ function SellerDashboardContent() {
     const map = new Map(categories.map((c) => [c.id, c.name]));
     return (categoryId: string) => map.get(categoryId) ?? "Uncategorized";
   }, [categories]);
+
+  // Filter and search listings
+  const filteredListings = useMemo(() => {
+    if (!data) return [];
+
+    let result = data.listings;
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (item) =>
+          item.title.toLowerCase().includes(query) ||
+          item.description.toLowerCase().includes(query) ||
+          categoryName(item.categoryId).toLowerCase().includes(query),
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== "all") {
+      result = result.filter((item) => item.status === statusFilter);
+    }
+
+    return result;
+  }, [data, searchQuery, statusFilter, categoryName]);
+
+  // Pagination logic
+  const totalItems = filteredListings.length;
+  const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const endIndex = Math.min(startIndex + PAGE_SIZE, totalItems);
+  const currentItems = filteredListings.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+
+  const hasActiveFilters = searchQuery.trim() !== "" || statusFilter !== "all";
+  const activeFilterCount = [
+    searchQuery.trim() !== "",
+    statusFilter !== "all",
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setCurrentPage(1);
+  };
 
   async function handleConfirmRemove() {
     if (!removeTarget) return;
@@ -151,6 +217,34 @@ function SellerDashboardContent() {
     }
   }
 
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  const getPageNumbers = () => {
+    const pages: number[] = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else if (currentPage <= 3) {
+      for (let i = 1; i <= maxVisible; i++) {
+        pages.push(i);
+      }
+    } else if (currentPage >= totalPages - 2) {
+      for (let i = totalPages - maxVisible + 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      for (let i = currentPage - 2; i <= currentPage + 2; i++) {
+        pages.push(i);
+      }
+    }
+    return pages;
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -207,11 +301,100 @@ function SellerDashboardContent() {
         </div>
       )}
 
+      {/* Search and Filter Bar - Above the table */}
+      <div className="mb-6 space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search
+              size={18}
+              className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${
+                isSearchFocused || searchQuery
+                  ? "text-terracotta"
+                  : "text-ink-soft/60"
+              }`}
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+              placeholder="Search by title, description, or category..."
+              className="w-full rounded-xl border border-border bg-white py-2.5 pl-10 pr-10 text-sm text-ink outline-none transition-all placeholder:text-ink-soft/60 focus:border-terracotta focus:ring-2 focus:ring-terracotta/10"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-soft/60 hover:text-ink transition-colors"
+                aria-label="Clear search"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* Status Filter */}
+          <div className="min-w-[140px]">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-ink outline-none transition-all focus:border-terracotta focus:ring-2 focus:ring-terracotta/10"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="sold">Sold</option>
+              <option value="removed">Removed</option>
+            </select>
+          </div>
+
+          {/* Clear Filters Button */}
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1.5 rounded-xl border border-border bg-white px-3.5 py-2.5 text-sm text-ink-soft hover:border-ink/30 hover:bg-cream-dim transition-all whitespace-nowrap"
+            >
+              <X size={14} />
+              Clear {activeFilterCount}
+            </button>
+          )}
+        </div>
+
+        {/* Active Filter Tags */}
+        {hasActiveFilters && (
+          <div className="flex flex-wrap gap-2">
+            {searchQuery && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-terracotta-tint px-3 py-1 text-xs font-medium text-terracotta">
+                Search: &ldquo;{searchQuery}&ldquo;
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="hover:text-terracotta-dark"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {statusFilter !== "all" && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-terracotta-tint px-3 py-1 text-xs font-medium text-terracotta">
+                Status:{" "}
+                {statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                <button
+                  onClick={() => setStatusFilter("all")}
+                  className="hover:text-terracotta-dark"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="mb-6 overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="text-sm font-semibold text-ink">My Listings</h2>
           <span className="text-xs text-ink-soft">
-            {data.listings.length} total
+            {filteredListings.length} of {data.listings.length} total
           </span>
         </div>
 
@@ -219,119 +402,186 @@ function SellerDashboardContent() {
           <p className="px-5 py-10 text-center text-ink-soft">
             You haven&apos;t posted any listings yet.
           </p>
+        ) : filteredListings.length === 0 ? (
+          <div className="px-5 py-10 text-center">
+            <p className="text-ink-soft">
+              No listings match your search or filters.
+            </p>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="mt-2 text-sm text-terracotta hover:underline"
+              >
+                Clear all filters
+              </button>
+            )}
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="bg-cream-dim font-mono-data text-xs uppercase tracking-wide text-ink-soft">
-                  <th className="px-5 py-3 font-medium">Item</th>
-                  <th className="px-5 py-3 font-medium">Price</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
-                  <th className="px-5 py-3 font-medium">Views</th>
-                  <th className="px-5 py-3 font-medium">Posted</th>
-                  <th className="px-5 py-3 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {data.listings.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="transition-colors hover:bg-cream-dim/40"
-                  >
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-cream-dim">
-                          {item.images[0] && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={resolveMediaUrl(item.images[0].url)}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
-                          )}
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="bg-cream-dim font-mono-data text-xs uppercase tracking-wide text-ink-soft">
+                    <th className="px-5 py-3 font-medium">Item</th>
+                    <th className="px-5 py-3 font-medium">Price</th>
+                    <th className="px-5 py-3 font-medium">Status</th>
+                    <th className="px-5 py-3 font-medium">Views</th>
+                    <th className="px-5 py-3 font-medium">Posted</th>
+                    <th className="px-5 py-3 font-medium text-right">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {currentItems.map((item) => (
+                    <tr
+                      key={item.id}
+                      className="transition-colors hover:bg-cream-dim/40"
+                    >
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-cream-dim">
+                            {item.images[0] && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={resolveMediaUrl(item.images[0].url)}
+                                alt=""
+                                className="h-full w-full object-cover"
+                              />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-ink">{item.title}</p>
+                            <p className="text-xs text-ink-soft">
+                              {categoryName(item.categoryId)}
+                            </p>
+                          </div>
                         </div>
+                      </td>
+                      <td className="px-5 py-4 font-mono-data font-medium text-ink">
+                        ETB {item.price.toLocaleString()}
+                      </td>
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                            item.status === "active"
+                              ? "border-sage-bg bg-sage-bg text-sage"
+                              : item.status === "sold"
+                                ? "border-border bg-cream-dim text-ink-soft"
+                                : "border-red-100 bg-red-50 text-red-600"
+                          }`}
+                        >
+                          {item.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-ink-soft">
+                        {item.viewCount}
+                      </td>
+                      <td className="px-5 py-4 text-ink-soft">
                         <div>
-                          <p className="font-medium text-ink">{item.title}</p>
-                          <p className="text-xs text-ink-soft">
-                            {categoryName(item.categoryId)}
-                          </p>
+                          <div>{timeAgo(item.createdAt)}</div>
+                          <div className="text-[10px] text-ink-soft/60">
+                            {formatDate(item.createdAt)}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 font-mono-data font-medium text-ink">
-                      ETB {item.price.toLocaleString()}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                          item.status === "active"
-                            ? "border-sage-bg bg-sage-bg text-sage"
-                            : item.status === "sold"
-                              ? "border-border bg-cream-dim text-ink-soft"
-                              : "border-red-100 bg-red-50 text-red-600"
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <Dropdown
+                          align="right"
+                          trigger={
+                            <button
+                              aria-label="Open actions"
+                              disabled={busyId === item.id}
+                              className="rounded-full p-1.5 text-ink-soft hover:bg-cream-dim hover:text-ink disabled:opacity-60"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </button>
+                          }
+                          items={[
+                            {
+                              label: "View",
+                              onSelect: () =>
+                                router.push(`/listings/${item.id}`),
+                            },
+                            {
+                              label: "Edit",
+                              onSelect: () =>
+                                router.push(`/listings/${item.id}/edit`),
+                            },
+                            ...(item.status === "active"
+                              ? [
+                                  {
+                                    label: "Mark Sold",
+                                    onSelect: () => setSoldTarget(item),
+                                  },
+                                ]
+                              : []),
+                            ...(item.status !== "removed"
+                              ? [
+                                  {
+                                    label: "Remove listing",
+                                    variant: "danger" as const,
+                                    onSelect: () => setRemoveTarget(item),
+                                  },
+                                ]
+                              : [
+                                  {
+                                    label: "Restore listing",
+                                    onSelect: () => handleRestore(item),
+                                  },
+                                ]),
+                          ]}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-border px-5 py-4">
+                <div className="text-sm text-ink-soft">
+                  Showing {startIndex + 1}–{endIndex} of {totalItems}
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink-soft hover:bg-cream-dim hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Previous
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers().map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        onClick={() => goToPage(pageNum)}
+                        className={`min-w-[32px] rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                          currentPage === pageNum
+                            ? "bg-terracotta text-white"
+                            : "text-ink-soft hover:bg-cream-dim hover:text-ink"
                         }`}
                       >
-                        {item.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-ink-soft">
-                      {item.viewCount}
-                    </td>
-                    <td className="px-5 py-4 text-ink-soft">
-                      {timeAgo(item.createdAt)}
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <Dropdown
-                        align="right"
-                        trigger={
-                          <button
-                            aria-label="Open actions"
-                            disabled={busyId === item.id}
-                            className="rounded-full p-1.5 text-ink-soft hover:bg-cream-dim hover:text-ink disabled:opacity-60"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </button>
-                        }
-                        items={[
-                          {
-                            label: "View",
-                            onSelect: () => router.push(`/listings/${item.id}`),
-                          },
-                          {
-                            label: "Edit",
-                            onSelect: () =>
-                              router.push(`/listings/${item.id}/edit`),
-                          },
-                          ...(item.status === "active"
-                            ? [
-                                {
-                                  label: "Mark Sold",
-                                  onSelect: () => setSoldTarget(item),
-                                },
-                              ]
-                            : []),
-                          ...(item.status !== "removed"
-                            ? [
-                                {
-                                  label: "Remove listing",
-                                  variant: "danger" as const,
-                                  onSelect: () => setRemoveTarget(item),
-                                },
-                              ]
-                            : [
-                                {
-                                  label: "Restore listing",
-                                  onSelect: () => handleRestore(item),
-                                },
-                              ]),
-                        ]}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        {pageNum}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink-soft hover:bg-cream-dim hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
