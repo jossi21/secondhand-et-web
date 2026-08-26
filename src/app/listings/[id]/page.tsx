@@ -185,7 +185,7 @@ export default function ListingDetailPage() {
     "Uncategorized";
 
   const myRating = ratingSummary?.ratings.find(
-    (r) => r.fromUserId === user?.id && r.listingId === listing.id,
+    (r) => r.fromUserId === user?.id && r.listingId === listing?.id,
   );
 
   async function handleShare() {
