@@ -5,32 +5,9 @@ import { CategoryResponse, PaginatedListingResponse } from "@/lib/types";
 import { CategoryCard } from "@/components/categories/CategoryCard";
 import { ListingCard } from "@/components/browse/ListingCard";
 import { PublicStatsResponse } from "@/lib/types";
+import HowItWorksSection from "@/components/home/HowItWorksSection";
 
 const QUICK_SEARCHES = ["iPhone", "Laptop", "Toyota", "Sofa", "Refrigerator"];
-
-const HOW_IT_WORKS = [
-  {
-    number: "01",
-    emoji: "📸",
-    title: "Create your listing",
-    description:
-      "Post photos, set your price, describe the condition honestly. It takes under 3 minutes.",
-  },
-  {
-    number: "02",
-    emoji: "💬",
-    title: "Buyers contact you",
-    description:
-      "Interested buyers reach you directly via Telegram or phone — no hidden intermediary fees.",
-  },
-  {
-    number: "03",
-    emoji: "🤝",
-    title: "Meet, verify, and sell",
-    description:
-      "Meet in a safe public location, hand over the item, and rate each other. Build your seller reputation.",
-  },
-];
 
 async function getCategories(): Promise<CategoryResponse[]> {
   try {
@@ -132,25 +109,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Stats bar */}
-      <section className="border-b border-border bg-white">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-6 py-8 lg:grid-cols-4 lg:px-10">
-          {[
-            [stats.activeListings.toLocaleString(), "Active Listings"],
-            [stats.verifiedSellers.toLocaleString(), "Verified Sellers"],
-            [stats.citiesCovered.toLocaleString(), "Cities Covered"],
-            [stats.soldListings.toLocaleString(), "Transactions"],
-          ].map(([value, label]) => (
-            <div key={label}>
-              <span className="font-mono-data text-3xl font-semibold text-ink">
-                {value}
-              </span>
-              <p className="text-sm text-ink-soft">{label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Browse by Category */}
       <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
         <div className="mb-8 flex items-end justify-between">
@@ -209,57 +167,9 @@ export default async function Home() {
         )}
       </section>
 
-      {/* How It Works */}
+      {/* How It Works - Animated Section with Real Stats */}
       <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
-        <h2 className="font-display text-3xl font-semibold text-ink">
-          How SecondHand ET Works
-        </h2>
-        <p className="mt-2 text-ink-soft">
-          Simple, direct, and transparent — no escrow complexity.
-        </p>
-
-        <div className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-3">
-          {HOW_IT_WORKS.map((step) => (
-            <div key={step.number}>
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-border font-mono-data text-sm text-ink-soft">
-                  {step.number}
-                </span>
-                <span className="text-2xl">{step.emoji}</span>
-              </div>
-              <h3 className="mt-4 font-semibold text-ink">{step.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-                {step.description}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="bg-cream-dim">
-        <div className="mx-auto max-w-3xl px-6 py-20 text-center lg:px-10">
-          <h2 className="font-display text-4xl font-semibold text-ink">
-            Have something to sell?
-          </h2>
-          <p className="mt-3 text-ink-soft">
-            Join thousands of Ethiopians already trading on SecondHand ET.
-          </p>
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link
-              href="/listings/new"
-              className="rounded-full bg-terracotta px-8 py-3 font-semibold text-white transition-colors hover:bg-terracotta-dark"
-            >
-              Post a Listing — Free
-            </Link>
-            <Link
-              href="/browse"
-              className="rounded-full border border-ink/15 px-8 py-3 font-semibold text-ink transition-colors hover:bg-white"
-            >
-              Browse Listings
-            </Link>
-          </div>
-        </div>
+        <HowItWorksSection stats={stats} />
       </section>
     </>
   );
