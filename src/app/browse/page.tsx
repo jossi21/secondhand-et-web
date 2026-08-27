@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCategories } from "@/hooks/useCategories";
 import { useListings } from "@/hooks/useListings";
 import { BrowseSidebar } from "@/components/browse/BrowseSidebar";
@@ -12,6 +12,7 @@ import {
   X,
   SlidersHorizontal,
 } from "lucide-react";
+import type { ListingResponse } from "@/lib/types";
 
 type SortOption = "Newest First" | "Price: Low to High" | "Price: High to Low";
 
@@ -27,6 +28,12 @@ export default function BrowsePage() {
   const [sortBy, setSortBy] = useState<SortOption>("Newest First");
   const [showSold, setShowSold] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [page, setPage] = useState(1);
+
+  // Reset back to page 1 whenever a real filter changes (not when `page` itself changes)
+  useEffect(() => {
+    setPage(1);
+  }, [searchInput, activeCategoryId, activeCity, minPrice, maxPrice]);
 
   const filters = useMemo(
     () => ({
@@ -35,18 +42,28 @@ export default function BrowsePage() {
       city: activeCity || undefined,
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
-      page: 1,
+      page,
       limit: 24,
     }),
-    [searchInput, activeCategoryId, activeCity, minPrice, maxPrice],
+    [searchInput, activeCategoryId, activeCity, minPrice, maxPrice, page],
   );
 
   const { listings, total, isLoading } = useListings(filters);
 
+  const [accumulated, setAccumulated] = useState<ListingResponse[]>([]);
+
+  useEffect(() => {
+    if (page === 1) {
+      setAccumulated(listings);
+    } else {
+      setAccumulated((prev) => [...prev, ...listings]);
+    }
+  }, [listings, page]);
+
   const displayedListings = useMemo(() => {
     let pool = activeCondition
-      ? listings.filter((l) => l.condition === activeCondition)
-      : listings;
+      ? accumulated.filter((l) => l.condition === activeCondition)
+      : accumulated;
 
     pool = [...pool];
     if (sortBy === "Price: Low to High") {
@@ -55,7 +72,7 @@ export default function BrowsePage() {
       pool.sort((a, b) => b.price - a.price);
     }
     return pool;
-  }, [listings, activeCondition, sortBy]);
+  }, [accumulated, activeCondition, sortBy]);
 
   const hasActiveFilters =
     activeCategoryId ||
@@ -381,7 +398,7 @@ export default function BrowsePage() {
           >
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-sm font-medium text-gray-600">
-                {isLoading ? (
+                {isLoading && page === 1 ? (
                   "Loading…"
                 ) : (
                   <span>
@@ -406,7 +423,7 @@ export default function BrowsePage() {
               </div>
             </div>
 
-            {isLoading ? (
+            {isLoading && page === 1 ? (
               <div className="py-20 text-center text-gray-400">Loading…</div>
             ) : displayedListings.length === 0 ? (
               <div className="py-20 text-center">
@@ -427,8 +444,12 @@ export default function BrowsePage() {
                 </div>
                 {displayedListings.length < total && (
                   <div className="mt-8 text-center">
-                    <button className="px-6 py-2 text-sm font-medium text-orange-700 hover:text-orange-800 transition-colors">
-                      Load more
+                    <button
+                      onClick={() => setPage((p) => p + 1)}
+                      disabled={isLoading}
+                      className="px-6 py-2 text-sm font-medium text-orange-700 hover:text-orange-800 transition-colors disabled:opacity-50"
+                    >
+                      {isLoading ? "Loading…" : "Load more"}
                     </button>
                   </div>
                 )}
